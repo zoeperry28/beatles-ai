@@ -1,5 +1,13 @@
-Data/John/*.wav
-Data/Paul/*.wav
-Data/George/*.wav
-Data/Ringo/*.wav
+data/john/*
+data/paul/*
+data/george/*
+data/ringo/*
+!data/john/readme.txt
+!data/paul/readme.txt
+!data/george/readme.txt
+!data/ringo/readme.txt
 TEMP
+.probe
+._checkpoint
+checkpoint
+data/training_data/pretrained_models
