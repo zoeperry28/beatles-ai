@@ -10,4 +10,4 @@ TEMP
 .probe
 ._checkpoint
 checkpoint
-data/training_data/pretrained_models
+data/training_data/pretrained_models 
