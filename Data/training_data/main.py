@@ -3,10 +3,13 @@ import shutil
 import logging
 import threading
 from spleeter.separator import Separator
-import tensorflow as tf
 import warnings
 from pathlib import Path
 import concurrent 
+import sys
+
+import argparse
+parser = argparse.ArgumentParser()
 
 COMMAND_LIMIT = 8000 # max is 8191, rounded down to 8000 to give some "wriggle room"
 
@@ -59,7 +62,7 @@ def modify_file(filename, dir):
     shutil.rmtree(dir + "\\" + p)
     return to_return
 
-def r(input_dir, output_dir):
+def spleeter_extract_vocal(input_dir, output_dir):
     # Create a Spleeter separator
     separator = Separator('spleeter:4stems')
 
@@ -74,41 +77,7 @@ def r(input_dir, output_dir):
             o = separator.separate_to_file(filename, output_dir)
             
             modify_file(filename, output_dir)
-            
-def consolidate_audio(audios):
-    al = []
-    cur = []
-    char_count = 0 
-    index = 0
-    temp = 0
-    for item in audios: 
-        temp = char_count + len(item) + 1
-        if (temp > COMMAND_LIMIT):
-            index = index + 1
-            char_count = 0
-            al.append(cur)
-            cur = []
-            
-        temp = char_count + len(item) + 1
-        char_count = temp
-        cur.append(item)
-    return al
-
-def oconsolidate_audio(audios):
-    char_count = 0 
-    v = " ".join(audios)
-    return v
-
-
-
-def run_spleeter(audio, loc):
-    x = consolidate_audio(audio)
-    for y in x:
-        cm = "spleeter separate -o \"" + loc + "\" -p spleeter:4stems " + " ".join(y)
-        os.system(cm)
-    print("ok")
     
-
 def song_name_from_file(file):
     return file[ max(file.rfind("\\"), file.rfind("\\\\"),file.rfind("/"))+1:file.rfind(".")]
 
@@ -116,15 +85,7 @@ def get_audio(audios, loc="TEMP"):
     if (os.path.exists(loc) == False):
         os.mkdir(loc)
 
-    #nfile = vocal_file_name_gen(audios)
-    r(audios, loc)
-
-    #new_folder = song_name_from_file(audio)
-    #
-    #a = loc + "/"+ new_folder.strip() + "/vocals.wav"
-    #b = loc + "/" + nfile
-    #shutil.move(a, b)
-    #shutil.rmtree(loc + "/"+ new_folder)
+    spleeter_extract_vocal(audios, loc)
     return -1
 
 def check_file_extension(file):
@@ -152,11 +113,15 @@ def check_all_files(fo, result_path, recursive = False) :
     files = get_audio_in_folder(fo, recursive)
     get_audio(files, result_path)
         
-#check_all_files("C:\\Users\\zoepe\\Music\\Beatles\\George Harrison", "data\george", True)
-#check_all_files("D:\\zoepe\\Music\\Beatles\\John Lennon", "data\john", True)
-
-
 if __name__ == '__main__':
-    warnings.filterwarnings('ignore')
-    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-    check_all_files("C:\\Users\\zoepe\\Music\\Beatles\\George Harrison", "data\george", True)
+    parser.add_argument("-i", "--source-folder", dest="src", help="The folder where the source data can be found")
+    parser.add_argument("-o", "--dst-folder",  dest="dst", help="Where to put all of the extracted vocals")
+
+    args = parser.parse_args()
+
+    print( "USING: source folder = {}, destination folder = {}".format(
+            args.src,
+            args.dst,
+            ))
+    
+    check_all_files(str(args.src), str(args.dst), True)
