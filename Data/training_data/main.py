@@ -1,21 +1,11 @@
 import os
 import shutil
-import logging
-import threading
 from spleeter.separator import Separator
-import warnings
-from pathlib import Path
-import concurrent 
-import sys
-
 import argparse
+
 parser = argparse.ArgumentParser()
 
-COMMAND_LIMIT = 8000 # max is 8191, rounded down to 8000 to give some "wriggle room"
-
 compatible_ext = [".wav", ".flac", ".mp3"]
-
-_format = "%(asctime)s: %(message)s" 
 
 def chunks(arr, chunks):
     temp = []
