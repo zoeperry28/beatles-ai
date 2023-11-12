@@ -1,7 +1,11 @@
 #include <iostream>
-using namespace std;
+#include "neural_net.hpp"
+#include "audio.hpp"
 
-int main() {
-  cout << "Hello World!";
-  return 0;
+int main() 
+{
+    Audio A;
+    A.Load("hello");
+
+    return 0;
 }

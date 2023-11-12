@@ -8,6 +8,7 @@ data/ringo/*
 !data/ringo/readme.txt
 TEMP
 .probe
-._checkpoint
+._checkpoint.
 checkpoint
 data/training_data/pretrained_models 
+*.exe
