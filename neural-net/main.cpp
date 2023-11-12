@@ -4,8 +4,8 @@
 
 int main() 
 {
-    Audio A;
-    A.Load("D:\\zoepe\\projects\\beatles-ai\\Data\\john\\1_imagine-vocal.wav");
+    Audio AudioReader;
+    AudioReader.Load("D:\\zoepe\\projects\\beatles-ai\\Data\\john\\1_imagine-vocal.wav");
 
     return 0;
 }

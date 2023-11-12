@@ -6,31 +6,47 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include <boost/dynamic_bitset.hpp>
+
+int Audio::GetDataSize(std::string Path, uint8_t * bytes)
+{
+    return std::filesystem::file_size(std::filesystem::path(Path)) - C_WAV_HEADER_SIZE;
+}
+
+WAV Audio::GetHeaderFromBytes(uint8_t * bytes)
+{
+    WAV wav;
+    memcpy(&wav.header, bytes, sizeof(WAV_Header));
+    wav.Data = bytes + sizeof(WAV_Header);
+    return wav;
+}
 
 int Audio::Load(std::string Path) 
 {
+    int status = 0;
     std::vector<char>result;
 
-    if (std::experimental::filesystem::path(Path).extension() == ".wav")
-    { 
+    if (std::filesystem::path(Path).extension() == ".wav")
+    {  
         std::ifstream ifs(Path, std::ios::binary|std::ios::ate);
         std::ifstream::pos_type pos = ifs.tellg();
 
         std::vector<char> result(pos);
 
         ifs.seekg(0, std::ios::beg);
-        ifs.read(&result[0], pos);
+        ifs.read((char * ) &result[0], pos);
 
-        for (int item = 0 ; item < (int) result.size() ; item++)
-        {
-            std::cout << result[item];
-        }
+        std::vector<uint8_t> file_vec(result.begin(), result.end());
+        uint8_t* conv_file_vec = file_vec.data();
+        audio_wav = GetHeaderFromBytes(conv_file_vec);
+        data_size = GetDataSize(Path, conv_file_vec);
+        status = 1;
     }
     else
     {
-        throw std::invalid_argument("As this model expects data to be generated from the externally included script, the program will only accept .wav files.");
+        throw std::invalid_argument("As this model expects data to be generated from the externally included script, the program will only accept .wav files. Sorry!");
     }
-    return 1;
+    return status;
 }
 
 int Audio::CountZeroCrossings(float * signal, int signal_size)
