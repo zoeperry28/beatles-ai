@@ -11,6 +11,14 @@
 
 const std::string Notes [C_UNIQUE_PITCHES] = {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
 
+typedef struct WAV
+{
+    int RIFF : 4;
+    int File_Size : 4;
+    int WAVE: 4;
+    
+} WAV;
+
 class Audio
 {
     private:
@@ -20,7 +28,7 @@ class Audio
         {
             
         }
-        int Load(std::experimental::filesystem::path Path);
+        int Load(std::string Path);
         float CalculatePitch(float * signal, int signal_size, int sample_rate);
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);

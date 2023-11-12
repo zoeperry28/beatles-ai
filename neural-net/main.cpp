@@ -5,7 +5,7 @@
 int main() 
 {
     Audio A;
-    A.Load("hello");
+    A.Load("D:\\zoepe\\projects\\beatles-ai\\Data\\john\\1_imagine-vocal.wav");
 
     return 0;
 }

@@ -4,13 +4,27 @@
 #include <fftw3.h>
 #include <stdexcept>
 #include <filesystem>
+#include <fstream>
+#include <vector>
 
-
-int Audio::Load(std::experimental::filesystem::path Path) 
+int Audio::Load(std::string Path) 
 {
-    if (Path.extension() == ".wav")
-    { 
+    std::vector<char>result;
 
+    if (std::experimental::filesystem::path(Path).extension() == ".wav")
+    { 
+        std::ifstream ifs(Path, std::ios::binary|std::ios::ate);
+        std::ifstream::pos_type pos = ifs.tellg();
+
+        std::vector<char> result(pos);
+
+        ifs.seekg(0, std::ios::beg);
+        ifs.read(&result[0], pos);
+
+        for (int item = 0 ; item < (int) result.size() ; item++)
+        {
+            std::cout << result[item];
+        }
     }
     else
     {
@@ -41,7 +55,7 @@ float Audio::CalculatePitch(float * signal, int signal_size, int sample_rate)
 
     if (zero_crossings == 0) 
     {
-        to_return = 0.0f; // Avoid division by zero
+        to_return = 0.0f;
     }
     to_return = sample_rate / (2.0f * zero_crossings);
     return to_return;
