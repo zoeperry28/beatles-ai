@@ -1,13 +1,13 @@
 CC = g++
-CFLAGS = -std=c++11 -Wall
-INCLUDE_PATH = -IC:\vcpkg\installed\x64-mingw-dynamic\include
-LIBRARY_PATH = -LC:\vcpkg\installed\x64-mingw-dynamic\lib
-LIBRARIES = -lfftw3
+CFLAGS = -std=c++17 -Wall
+INCLUDE_PATH = -IC:/msys64/mingw64/include
+LIBRARY_PATH = -LC:/msys64/mingw64/lib
+LIBRARIES = -lfftw3 -lstdc++fs
 
 all: your_executable
 
-your_executable: main.cpp audio.cpp
+ffnn: main.cpp audio.cpp
 	$(CC) $(CFLAGS) $^ -o $@ $(INCLUDE_PATH) $(LIBRARY_PATH) $(LIBRARIES)
 
 clean:
-	del your_executable.exe
+	rm -f ffnn

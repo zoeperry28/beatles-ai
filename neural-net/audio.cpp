@@ -2,10 +2,20 @@
 #include <math.h>
 #include <string>
 #include <fftw3.h>
+#include <stdexcept>
+#include <filesystem>
 
-int Audio::Load(std::string path) 
+
+int Audio::Load(std::experimental::filesystem::path Path) 
 {
-    // this code will read an audio file and if specified, convert it to the given format. 
+    if (Path.extension() == ".wav")
+    { 
+
+    }
+    else
+    {
+        throw std::invalid_argument("As this model expects data to be generated from the externally included script, the program will only accept .wav files.");
+    }
     return 1;
 }
 
@@ -13,7 +23,7 @@ int Audio::CountZeroCrossings(float * signal, int signal_size)
 {
     int crossings = 0;
 
-    for (std::size_t i = 1; i < signal_size; ++i) 
+    for (int i = 1; i < signal_size; ++i) 
     {
         if ((signal[i] >= 0 && signal[i - 1] < 0) || 
             (signal[i] < 0 && signal[i - 1] >= 0)) 

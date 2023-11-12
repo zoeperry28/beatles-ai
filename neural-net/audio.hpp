@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <iostream>
+#include <experimental/filesystem>
  
 #define C_REF_PITCH_NOTE_NUM (69)
 #define C_UNIQUE_PITCHES (12)
@@ -19,7 +20,7 @@ class Audio
         {
             
         }
-        int Load(std::string path);
+        int Load(std::experimental::filesystem::path Path);
         float CalculatePitch(float * signal, int signal_size, int sample_rate);
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);
