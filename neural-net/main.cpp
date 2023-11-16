@@ -1,6 +1,9 @@
 #include <iostream>
 #include "neural_net.hpp"
 #include "audio.hpp"
+#include <boost/dynamic_bitset.hpp>
+#include <boost/cstdfloat.hpp>
+ 
 
 int main() 
 {

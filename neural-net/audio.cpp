@@ -7,6 +7,9 @@
 #include <fstream>
 #include <vector>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/cstdfloat.hpp>
+
+// Info on .wav file structure is taken from http://soundfile.sapp.org/doc/WaveFormat/
 
 int Audio::GetDataSize(std::string Path, uint8_t * bytes)
 {
@@ -21,12 +24,55 @@ WAV Audio::GetHeaderFromBytes(uint8_t * bytes)
     return wav;
 }
 
-int Audio::Load(std::string Path) 
+bool Audio::StereoToMono()
 {
+    bool res = true;
+    uint8_t * m;
+    if (NumOfChannels() == 2)
+    {
+        for (uint32_t i = 0 ; i < data_size; i+=2)
+        {
+            uint32_t v = audio_wav.Data[i] + audio_wav.Data[i+1];
+            *m = (uint8_t) v / 2;
+            m++;
+        }
+    }
+    else
+    {
+        res = false;
+    }
+    audio_wav.Data = m;
+    return res;
+}
+
+int Audio::NumOfChannels()
+{
+    return (int)audio_wav.header.NumChannels[0];
+}
+
+boost::float32_t * Audio::ByteToFloat()
+{
+    boost::float32_t * f; 
+    for (uint64_t i = 0 ; i < data_size; i++)
+    {
+        *f = (boost::float32_t) audio_wav.Data[i];
+        f++;
+    }
+    return f;
+}
+
+int Audio::Load(std::string Path = C_EMPTY_STRING) 
+{
+    bool IsValidFile = true;
     int status = 0;
     std::vector<char>result;
 
-    if (std::filesystem::path(Path).extension() == ".wav")
+    if (Path == C_EMPTY_STRING && path == "")
+    {
+        IsValidFile = false;
+    }
+
+    if (std::filesystem::path(Path).extension() == ".wav" && IsValidFile != false)
     {  
         std::ifstream ifs(Path, std::ios::binary|std::ios::ate);
         std::ifstream::pos_type pos = ifs.tellg();
@@ -41,6 +87,10 @@ int Audio::Load(std::string Path)
         audio_wav = GetHeaderFromBytes(conv_file_vec);
         data_size = GetDataSize(Path, conv_file_vec);
         status = 1;
+    }
+    else if (IsValidFile == false)
+    {
+        throw std::invalid_argument("Invalid file!");
     }
     else
     {

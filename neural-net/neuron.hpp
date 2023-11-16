@@ -7,6 +7,7 @@ private:
     int input = 0;
     int weight = 0;
     int bias = 0;
+    int threshold;
 public:
     Neuron(/* args */);
     ~Neuron();
