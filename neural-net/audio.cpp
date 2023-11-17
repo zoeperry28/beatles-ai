@@ -8,6 +8,7 @@
 #include <vector>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/cstdfloat.hpp>
+#include <boost/filesystem.hpp>
 
 // Info on .wav file structure is taken from http://soundfile.sapp.org/doc/WaveFormat/
 
@@ -139,3 +140,12 @@ std::string Audio::GetActualNote(float pitch, float reference_pitch)
     return (Notes[note_number % C_UNIQUE_PITCHES] + std::to_string(note_number / C_UNIQUE_PITCHES + 1));
 } 
 
+int Bulk_Audio::LoadFiles(std::string path, bool recursive = false)
+{
+    return 0;
+}
+
+int Bulk_Audio::LoadFiles(std::vector<std::string> path, bool recursive = false)
+{
+    return 0;
+}

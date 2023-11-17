@@ -72,8 +72,16 @@ class Audio
         std::string GetActualNote(float pitch, float reference_pitch);
         int NumOfChannels();
         bool StereoToMono();
+
+    friend class Bulk_Audio;
     
 };
 
+class Bulk_Audio
+{
+    public: 
+        int LoadFiles(std::string path, bool recursive);
+        int LoadFiles(std::vector<std::string> path, bool recursive);
+};
 
 #endif //  __AUDIO_H__

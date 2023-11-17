@@ -1,3 +1,5 @@
+# Private Data Ignores
+TEMP
 data/john/*
 data/paul/*
 data/george/*
@@ -6,9 +8,18 @@ data/ringo/*
 !data/paul/readme.txt
 !data/george/readme.txt
 !data/ringo/readme.txt
-TEMP
+data/training_data/pretrained_models 
+
+# CMake Related file Ignores
+/CMakeFiles
+*.CMakeFiles
+CMakeCache.txt
+
+# Generic "Good Practice" Ignores
 .probe
 ._checkpoint.
 checkpoint
-data/training_data/pretrained_models 
 *.exe
+*.dir/
+/.vs
+Makefile

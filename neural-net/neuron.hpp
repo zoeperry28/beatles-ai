@@ -11,7 +11,7 @@ private:
 public:
     Neuron(/* args */);
     ~Neuron();
-    int Activation();
+    int Activation(int value);
 };
 
 Neuron::Neuron(/* args */)
