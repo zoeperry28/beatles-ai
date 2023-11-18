@@ -10,9 +10,24 @@
 #define C_REF_PITCH_NOTE_NUM (69)
 #define C_UNIQUE_PITCHES (12)
 #define C_MIDI_INDEX_ADJUST (21)
-#define C_WAV_HEADER_SIZE (44)
+#define C_WAV_HEADER_SIZE (78)
 #define C_MB_TO_BYTES (1e+6)
 
+// WAV Header Sizes
+#define C_CHUNKID_SIZE (4U)
+#define C_CHUNKSIZE_SIZE (4U)
+#define C_FORMAT_SIZE (4U)
+#define C_SUBCHUNK1ID_SIZE (4U)
+#define C_SUBCHUNK1SIZE_SIZE (4U)
+#define C_AUDIOFORMAT_SIZE (2U)
+#define C_NUMCHANNELS_SIZE (2U)
+#define C_SAMPLERATE_SIZE (4U)
+#define C_BYTERATE_SIZE (4U)
+#define C_BLOCKALIGN_SIZE (2U)
+#define C_BITSPERSAMPLE_SIZE (2U)
+#define C_EMPTY_SIZE (34U)
+#define C_SUBCHUNK2ID_SIZE (4U)
+#define C_SUBCHUNK2SIZE_SIZE (4U)
 
 const std::string C_EMPTY_STRING = "NONE";
 
@@ -22,9 +37,11 @@ const std::string Notes [C_UNIQUE_PITCHES] = {"A", "A#", "B", "C", "C#", "D", "D
 
 typedef struct Frame
 {
+    boost::float32_t * Frame;
     std::string AverageMidiNote;
     float AveragePitch; 
     int ZeroCrossings; 
+
 } Frame;
 
 typedef struct WAV_Header {
@@ -62,11 +79,17 @@ class Audio
 
         int CountZeroCrossings(float * signal, int signal_size);
         WAV GetHeaderFromBytes(uint8_t * bytes);
-        int GetDataSize(std::string Path, uint8_t * bytes);
+        int GetDataSize(std::string Path);
         uint8_t * GetData(std::string Path, uint8_t * data);
-        std::vector<uint8_t *> GetAsFrames();
-   
+        std::vector<boost::float32_t *> GetAsFrames();
+        std::vector<Frame> ExtractFrameData();
+        int GetAsInt(char *c, int sz);
+
     public:
+
+        boost::float32_t * file; 
+        int Load(std::string Path);
+
         Audio()
         {
             
@@ -74,14 +97,17 @@ class Audio
         Audio(std::string Path)
         {
             path = Path;
+            Load(path);
         }
-        boost::float32_t * ByteToFloat();
-        int Load(std::string Path);
+        boost::float32_t * ByteToFloat(uint8_t * bytes, int size);
         float CalculatePitch(float * signal, int signal_size, int sample_rate);
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);
         int NumOfChannels();
         bool StereoToMono();
+
+        int ToFrames();
+
 
     friend class Bulk_Audio;
     

@@ -1,6 +1,9 @@
 #ifndef _NEURAL_NET_HPP_
 #define _NEURAL_NET_HPP_
 
+#include <boost/dynamic_bitset.hpp>
+#include <boost/cstdfloat.hpp>
+
 typedef struct NN_Input 
 {
     int value1;
@@ -19,6 +22,11 @@ typedef struct NEURAL_NET_Params
     NN_Input Input;
     NN_LayerSizes Sizes;
 } NEURAL_NET_Params;
+
+class Prime_Data
+{
+    
+};
 
 class Neural_Net
 {

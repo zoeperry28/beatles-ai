@@ -1,4 +1,5 @@
 #include "neural_net.hpp"
+#include "audio.hpp"
 
 int Neural_Net::Feed_Forward()
 {
@@ -9,3 +10,4 @@ int Neural_Net::Fetch_Result()
 {
     return -1;
 }
+

@@ -7,8 +7,7 @@
 
 int main(int argc, char * argv[]) 
 {
-    Audio AudioReader;
-    AudioReader.Load("C:\\projects\\beatles-ai\\Data\\john\\1_imagine-vocal.wav");
+    Audio AudioReader("C:\\projects\\beatles-ai\\Data\\john\\1_imagine-vocal.wav");
     std::cout << "hello" << std::endl;
     return 0;
 }
