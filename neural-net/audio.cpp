@@ -6,11 +6,49 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include <charconv>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/cstdfloat.hpp>
 #include <boost/filesystem.hpp>
+#include <iostream>
+#include <typeinfo>
 
 // Info on .wav file structure is taken from http://soundfile.sapp.org/doc/WaveFormat/
+
+int GetAsInt(char *c, int sz)
+{
+    unsigned int numericalValue;
+    auto result = std::from_chars(c, c + sz * 4, numericalValue);
+    return numericalValue;
+}
+
+std::vector<uint8_t *> Audio::GetAsFrames()
+{
+    int int_sample_rate = GetAsInt(audio_wav.header.SampleRate, 4);
+    std::vector<uint8_t *> to_return;
+
+    int lo = 0;
+    int hi = int_sample_rate;
+
+    while (hi <= data_size)
+    {
+        // Create a new frame buffer
+        uint8_t *temp = new uint8_t[int_sample_rate];
+
+        // Copy data to the frame buffer
+        for (int i = 0; i < int_sample_rate; i++)
+        {
+            temp[i] = audio_wav.Data[lo + i];
+        }
+
+        // Update pointers and push back the frame
+        lo = hi;
+        hi += int_sample_rate;
+        to_return.push_back(temp);
+    }
+
+    return to_return;
+}
 
 int Audio::GetDataSize(std::string Path, uint8_t * bytes)
 {
@@ -31,7 +69,7 @@ bool Audio::StereoToMono()
     uint8_t * m;
     if (NumOfChannels() == 2)
     {
-        for (uint32_t i = 0 ; i < data_size; i+=2)
+        for (int i = 0 ; i < data_size; i+=2)
         {
             uint32_t v = audio_wav.Data[i] + audio_wav.Data[i+1];
             *m = (uint8_t) v / 2;
@@ -54,7 +92,7 @@ int Audio::NumOfChannels()
 boost::float32_t * Audio::ByteToFloat()
 {
     boost::float32_t * f; 
-    for (uint64_t i = 0 ; i < data_size; i++)
+    for (int i = 0 ; i < data_size; i++)
     {
         *f = (boost::float32_t) audio_wav.Data[i];
         f++;
@@ -88,6 +126,7 @@ int Audio::Load(std::string Path = C_EMPTY_STRING)
         audio_wav = GetHeaderFromBytes(conv_file_vec);
         data_size = GetDataSize(Path, conv_file_vec);
         status = 1;
+        GetAsFrames();
     }
     else if (IsValidFile == false)
     {
@@ -95,10 +134,12 @@ int Audio::Load(std::string Path = C_EMPTY_STRING)
     }
     else
     {
-        throw std::invalid_argument("As this model expects data to be generated from the externally included script, the program will only accept .wav files. Sorry!");
+        throw std::invalid_argument(
+            "As this model expects data to be generated from the externally included script, the program will only accept .wav files. Sorry!");
     }
     return status;
 }
+
 
 int Audio::CountZeroCrossings(float * signal, int signal_size)
 {
@@ -137,7 +178,7 @@ std::string Audio::GetActualNote(float pitch, float reference_pitch)
 {
     int note_number = GetMidiNote(pitch, reference_pitch);
     note_number -= C_MIDI_INDEX_ADJUST; // see the explanation below.
-    return (Notes[note_number % C_UNIQUE_PITCHES] + std::to_string(note_number / C_UNIQUE_PITCHES + 1));
+    return (Notes[note_number  % C_UNIQUE_PITCHES] + std::to_string(note_number / C_UNIQUE_PITCHES + 1));
 } 
 
 int Bulk_Audio::LoadFiles(std::string path, bool recursive = false)

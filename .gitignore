@@ -14,6 +14,11 @@ data/training_data/pretrained_models
 /CMakeFiles
 *.CMakeFiles
 CMakeCache.txt
+*.cmake
+/build
+*.ninja*
+neural-net/build/CMakeFiles/*
+neural-net/out/*
 
 # Generic "Good Practice" Ignores
 .probe
@@ -23,3 +28,4 @@ checkpoint
 *.dir/
 /.vs
 Makefile
+*.json
