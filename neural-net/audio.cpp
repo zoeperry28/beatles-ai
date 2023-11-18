@@ -24,54 +24,48 @@
 *  @param  Path the path of the audio file to be loaded.
 *  @return whether the file was read or not. 
 */
-int Audio::Load(std::string Path = C_EMPTY_STRING) 
+WAV Audio::Load(std::string Path = C_EMPTY_STRING) 
 {
-    bool IsValidFile = true;
-    int status = 0;
-    std::vector<char>result;
 
-    if (Path == C_EMPTY_STRING && path == "")
+    if (Path.empty() && path.empty())
     {
-        IsValidFile = false;
+        throw std::invalid_argument("Invalid file path!");
     }
-
-    if (std::filesystem::path(Path).extension() == ".wav" && IsValidFile != false)
-    {  
-        std::ifstream ifs(Path, std::ios::binary|std::ios::ate);
-        std::ifstream::pos_type pos = ifs.tellg();
-
-        std::vector<char> result(pos);
-
-        ifs.seekg(0, std::ios::beg);
-        ifs.read((char * ) &result[0], pos);
-
-        std::vector<uint8_t> file_vec(result.begin(), result.end());
-        uint8_t* conv_file_vec = file_vec.data();
-
-        audio_wav = GetHeaderFromBytes(conv_file_vec);
-        data_size = GetDataSize(Path);
-        
-        // Data should be converted to mono.
-        StereoToMono();
-        
-        // Now, the obtained data will be converted to float. This is done to enable the use of various audio analysis functions
-        file = ByteToFloat(audio_wav.Data, data_size);
-
-        GetAsFrames();
-
-        status = 1;
-    }
-    else if (IsValidFile == false)
+    else if (path.empty() == false)
     {
-        throw std::invalid_argument("Invalid file!");
+        Path = path;
     }
-    else
+
+    // Check if the file is opened successfully
+    std::ifstream ifs(Path, std::ios::binary | std::ios::ate);
+    if (!ifs.is_open())
     {
-        throw std::invalid_argument(
-            "As this model expects data to be generated from the externally included script, the program will only accept .wav files. Sorry!");
+        throw std::runtime_error("Failed to open file: " + Path);
     }
-    return status;
+
+    std::ifstream::pos_type pos = ifs.tellg();
+    std::vector<char> result(pos);
+
+    ifs.seekg(0, std::ios::beg);
+    ifs.read(&result[0], pos);
+
+    std::vector<uint8_t> file_vec(result.begin(), result.end());
+    uint8_t* conv_file_vec = file_vec.data();
+
+    audio_wav = GetHeaderFromBytes(Path, conv_file_vec);
+
+    // Data should be converted to mono.
+    StereoToMono();
+
+    // Now, the obtained data will be converted to float. 
+    // This is done to enable the use of various audio analysis functions.
+    file = ByteToFloat(audio_wav.Data, audio_wav.size);
+
+    GetAsFrames();
+
+    return audio_wav;
 }
+
 
 /*
 * @brief Takes a byte array and converts it to boost::float.
@@ -83,20 +77,17 @@ boost::float32_t* Audio::ByteToFloat(uint8_t* bytes, int size)
 {
     if (size == -1)
     {
-        size = data_size;
+        size = audio_wav.size;
     }
     if (bytes == nullptr)
     {
-        // Handle nullptr case appropriately
         return nullptr;
     }
 
-    // Allocate memory for the float array
     boost::float32_t* f = new boost::float32_t[size];
 
     for (int i = 0; i < size; i++)
     {
-        // Convert each byte to boost::float32_t and store in the array
         f[i] = static_cast<boost::float32_t>(bytes[i]);
     }
 
@@ -108,11 +99,12 @@ boost::float32_t* Audio::ByteToFloat(uint8_t* bytes, int size)
 * @param bytes The bytes to be used
 * @return A data structure representing the layout of a .wav file, including the header.
 */
-WAV Audio::GetHeaderFromBytes(uint8_t * bytes)
+WAV Audio::GetHeaderFromBytes(std::string path, uint8_t * bytes)
 {
     WAV wav;
     memcpy(&wav.header, bytes, sizeof(WAV_Header));
     wav.Data = bytes + sizeof(WAV_Header);
+    wav.size = GetDataSize(path);
     return wav;
 }
 
@@ -138,18 +130,15 @@ std::vector<boost::float32_t *> Audio::GetAsFrames()
     int lo = 0;
     int hi = int_sample_rate;
 
-    while (hi <= data_size)
+    while (hi <= audio_wav.size)
     {
-        // Create a new frame buffer
         boost::float32_t *temp = new boost::float32_t[int_sample_rate];
 
-        // Copy data to the frame buffer
         for (int i = 0; i < int_sample_rate; i++)
         {
             temp[i] = audio_wav.Data[lo + i];
         }
 
-        // Update pointers and push back the frame
         lo = hi;
         hi += int_sample_rate;
         to_return.push_back(temp);
@@ -188,9 +177,9 @@ bool Audio::StereoToMono()
 
     if (NumOfChannels() == 2)
     {
-        uint8_t* monoData = new uint8_t[data_size / 2];
+        uint8_t* monoData = new uint8_t[audio_wav.size / 2];
 
-        for (int i = 0; i < data_size; i += 2)
+        for (int i = 0; i < audio_wav.size; i += 2)
         {
             uint32_t v = static_cast<uint32_t>(audio_wav.Data[i]) + audio_wav.Data[i + 1];
 
@@ -199,7 +188,7 @@ bool Audio::StereoToMono()
 
         audio_wav.Data = monoData;
         audio_wav.header.NumChannels[0] = 1;
-        data_size = data_size / 2;
+        audio_wav.size = audio_wav.size / 2;
     }
     else
     {
@@ -255,13 +244,31 @@ std::string Audio::GetActualNote(float pitch, float reference_pitch)
     return (Notes[note_number  % C_UNIQUE_PITCHES] + std::to_string(note_number / C_UNIQUE_PITCHES + 1));
 } 
 
-int Bulk_Audio::LoadFiles(std::string path, bool recursive = false)
+int Bulk_Audio::LoadFiles(std::string path, bool recursive)
 {
-    
+    for (auto const& dir_entry : std::filesystem::recursive_directory_iterator(path))
+    {
+        if (dir_entry.is_regular_file())
+        {
+            try
+            {
+                Audio::Load(dir_entry.path().string());
+                std::cout << "\033[1;32m[INFOS] " << dir_entry.path().string() << std::endl;
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << "\033[1;31m[ERROR] " << dir_entry.path().string() << " could not be loaded!\n";
+            }
+        }
+    }
     return 0;
 }
 
-int Bulk_Audio::LoadFiles(std::vector<std::string> path, bool recursive = false)
+int Bulk_Audio::LoadFiles(std::vector<std::string> path, bool recursive)
 {
+    for (std::string p : path)
+    {
+        Audio::Load(p);
+    }
     return 0;
 }

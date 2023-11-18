@@ -68,17 +68,17 @@ typedef struct WAV
 {
     WAV_Header header;
     uint8_t* Data;
+    int size;
 } WAV;
 
 class Audio
 {
     private:
-        int data_size; 
         WAV audio_wav;
         std::string path = "";
 
         int CountZeroCrossings(float * signal, int signal_size);
-        WAV GetHeaderFromBytes(uint8_t * bytes);
+        WAV GetHeaderFromBytes(std::string path, uint8_t * bytes);
         int GetDataSize(std::string Path);
         uint8_t * GetData(std::string Path, uint8_t * data);
         std::vector<boost::float32_t *> GetAsFrames();
@@ -88,7 +88,7 @@ class Audio
     public:
 
         boost::float32_t * file; 
-        int Load(std::string Path);
+        WAV Load(std::string Path);
 
         Audio()
         {
@@ -113,11 +113,20 @@ class Audio
     
 };
 
-class Bulk_Audio
+class Bulk_Audio : Audio
 {
     public: 
-        int LoadFiles(std::string path, bool recursive);
-        int LoadFiles(std::vector<std::string> path, bool recursive);
+        Bulk_Audio()
+        {
+            
+        }
+        Bulk_Audio(std::string Path)
+        {
+            LoadFiles(Path);
+        }
+        
+        int LoadFiles(std::string path, bool recursive = false);
+        int LoadFiles(std::vector<std::string> path, bool recursive = false);
 };
 
 #endif //  __AUDIO_H__

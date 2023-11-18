@@ -7,7 +7,7 @@
 
 int main(int argc, char * argv[]) 
 {
-    Audio AudioReader("C:\\projects\\beatles-ai\\Data\\john\\1_imagine-vocal.wav");
+    Bulk_Audio AudioReader("C:\\projects\\beatles-ai\\Data\\john");
     std::cout << "hello" << std::endl;
     return 0;
 }
