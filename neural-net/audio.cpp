@@ -127,7 +127,7 @@ boost::float32_t ** Audio::ToFrames(boost::float32_t * bytes, int sz)
     boost::float32_t * current_frame;
     
     int FrameCount = sz / FrameRate;
-    boost::float32_t ** to_return = (boost::float32_t **)malloc(FrameCount * sizeof(boost::float32_t *));
+    boost::float32_t ** to_return = (boost::float32_t **)malloc(FrameCount * sizeof(boost::float32_t *)+1);
     int ind = 0;
     for (int i = 0 ; i < FrameCount; i++)
     {
@@ -140,6 +140,7 @@ boost::float32_t ** Audio::ToFrames(boost::float32_t * bytes, int sz)
         }
         to_return[i] = temp;
     }
+    to_return[FrameCount] = nullptr;
     return to_return;
 }
 
@@ -208,7 +209,7 @@ int Audio::NumOfChannels(WAV * wav)
     return (int)audio_wav.header.NumChannels[0];
 }
 
-int Audio::CountZeroCrossings(float * signal, int signal_size)
+int Audio::CountZeroCrossings(boost::float32_t * signal, int signal_size)
 {
     int crossings = 0;
 
@@ -225,6 +226,10 @@ int Audio::CountZeroCrossings(float * signal, int signal_size)
 
 float Audio::CalculatePitch(float * signal, int signal_size, int sample_rate)
 {
+    if (sample_rate == -1)
+    {
+        sample_rate = GetAsInt(audio_wav.header.SampleRate, C_SAMPLERATE_SIZE);
+    }
     float to_return = 0.0;
     int zero_crossings = CountZeroCrossings(signal, signal_size);
 

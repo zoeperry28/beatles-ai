@@ -76,7 +76,6 @@ class Audio
     private:
         std::string path = "";
 
-        int CountZeroCrossings(float * signal, int signal_size);
         WAV GetHeaderFromBytes(std::string path, uint8_t * bytes);
         int GetDataSize(std::string Path);
         uint8_t * GetData(std::string Path, uint8_t * data);
@@ -100,9 +99,10 @@ class Audio
         {
             file = nullptr;
         }
-
+        
+        int CountZeroCrossings(boost::float32_t * signal, int signal_size);
         boost::float32_t * ByteToFloat(uint8_t * bytes, int size);
-        float CalculatePitch(float * signal, int signal_size, int sample_rate);
+        float CalculatePitch(float * signal, int signal_size, int sample_rate=-1);
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);
         int NumOfChannels(WAV * wav = nullptr);
