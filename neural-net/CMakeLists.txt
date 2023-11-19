@@ -14,7 +14,7 @@ message(STATUS "BOOST_ROOT= ${BOOST_ROOT}")
 include_directories(${BOOST_ROOT})
 
 # Add the main.cpp file as a source file
-set(SOURCE_FILES main.cpp audio.cpp neural_net.cpp)
+set(SOURCE_FILES main.cpp audio.cpp neural_net.cpp helper.cpp)
 # Create the executable
 add_executable(beatles_ai ${SOURCE_FILES})
 

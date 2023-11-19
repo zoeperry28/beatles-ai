@@ -27,7 +27,6 @@
 */
 WAV Audio::Load(std::string Path = C_EMPTY_STRING) 
 {
-
     if (Path.empty() && path.empty())
     {
         throw std::invalid_argument("Invalid file path!");

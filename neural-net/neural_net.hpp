@@ -63,7 +63,7 @@ class Neural_Net
     public:
         Neural_Net()
         {
-            
+
         }
         Neural_Net(NEURAL_NET_Params _params)
         {
