@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.13)  # CMake version check
 project(beatles_ai)                    # Project name
 
-
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_C_COMPILER "C:/msys64/mingw64/bin/gcc.exe")
 set(CMAKE_CXX_COMPILER "C:/msys64/mingw64/bin/g++.exe")
@@ -15,13 +14,12 @@ message(STATUS "BOOST_ROOT= ${BOOST_ROOT}")
 include_directories(${BOOST_ROOT})
 
 # Add the main.cpp file as a source file
-set(SOURCE_FILES main.cpp audio.cpp)
+set(SOURCE_FILES main.cpp audio.cpp neural_net.cpp)
 # Create the executable
 add_executable(beatles_ai ${SOURCE_FILES})
 
 link_directories("C:/msys64/mingw64/lib")
 link_directories(${Boost_LIBRARY_DIRS})
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
-
 
 target_include_directories(beatles_ai PRIVATE "C:/msys64/mingw64/include")

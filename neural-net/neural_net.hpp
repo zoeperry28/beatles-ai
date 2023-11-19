@@ -1,8 +1,10 @@
+#include <boost/dynamic_bitset.hpp>
+#include <boost/cstdfloat.hpp>
+
 #ifndef _NEURAL_NET_HPP_
 #define _NEURAL_NET_HPP_
 
-#include <boost/dynamic_bitset.hpp>
-#include <boost/cstdfloat.hpp>
+#include "audio.hpp"
 
 typedef struct NN_Input 
 {
@@ -25,7 +27,13 @@ typedef struct NEURAL_NET_Params
 
 class Prime_Data
 {
-    
+    public:
+        Prime_Data()
+        {
+
+        }
+        void PrepareAudioData(Bulk_Audio * audio); 
+        void PrepareAudioData(Audio * audio);
 };
 
 class Neural_Net

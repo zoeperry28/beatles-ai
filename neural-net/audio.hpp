@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/cstdfloat.hpp>
- 
+
 #define C_REF_PITCH_NOTE_NUM (69)
 #define C_UNIQUE_PITCHES (12)
 #define C_MIDI_INDEX_ADJUST (21)
@@ -14,19 +14,19 @@
 #define C_MB_TO_BYTES (1e+6)
 
 // WAV Header Sizes
-#define C_CHUNKID_SIZE (4U)
-#define C_CHUNKSIZE_SIZE (4U)
-#define C_FORMAT_SIZE (4U)
-#define C_SUBCHUNK1ID_SIZE (4U)
+#define C_CHUNKID_SIZE       (4U)
+#define C_CHUNKSIZE_SIZE     (4U)
+#define C_FORMAT_SIZE        (4U)
+#define C_SUBCHUNK1ID_SIZE   (4U)
 #define C_SUBCHUNK1SIZE_SIZE (4U)
-#define C_AUDIOFORMAT_SIZE (2U)
-#define C_NUMCHANNELS_SIZE (2U)
-#define C_SAMPLERATE_SIZE (4U)
-#define C_BYTERATE_SIZE (4U)
-#define C_BLOCKALIGN_SIZE (2U)
+#define C_AUDIOFORMAT_SIZE   (2U)
+#define C_NUMCHANNELS_SIZE   (2U)
+#define C_SAMPLERATE_SIZE    (4U)
+#define C_BYTERATE_SIZE      (4U)
+#define C_BLOCKALIGN_SIZE    (2U)
 #define C_BITSPERSAMPLE_SIZE (2U)
-#define C_EMPTY_SIZE (34U)
-#define C_SUBCHUNK2ID_SIZE (4U)
+#define C_EMPTY_SIZE         (34U)
+#define C_SUBCHUNK2ID_SIZE   (4U)
 #define C_SUBCHUNK2SIZE_SIZE (4U)
 
 const std::string C_EMPTY_STRING = "NONE";
@@ -46,22 +46,22 @@ typedef struct Frame
 
 typedef struct WAV_Header {
     // RIFF Chunk
-    char ChunkID      [4];
-    char ChunkSize    [4];
-    char Format       [4];
+    char ChunkID      [C_CHUNKID_SIZE];
+    char ChunkSize    [C_CHUNKSIZE_SIZE];
+    char Format       [C_FORMAT_SIZE];
     // FMT Chunk
-    char Subchunk1ID  [4];
-    char Subchunk1Size[4];
-    char AudioFormat  [2];
-    char NumChannels  [2];
-    char SampleRate   [4];
-    char ByteRate     [4];
-    char BlockAlign   [2];
-    char BitsPerSample[2];
-    char EMPTY        [34];
+    char Subchunk1ID  [C_SUBCHUNK1ID_SIZE];
+    char Subchunk1Size[C_SUBCHUNK1SIZE_SIZE];
+    char AudioFormat  [C_AUDIOFORMAT_SIZE];
+    char NumChannels  [C_NUMCHANNELS_SIZE];
+    char SampleRate   [C_SAMPLERATE_SIZE];
+    char ByteRate     [C_BYTERATE_SIZE];
+    char BlockAlign   [C_BLOCKALIGN_SIZE];
+    char BitsPerSample[C_BITSPERSAMPLE_SIZE];
+    char EMPTY        [C_EMPTY_SIZE];
     // DATA Chunk
-    char Subchunk2ID  [4];
-    char Subchunk2Size[4];
+    char Subchunk2ID  [C_SUBCHUNK2ID_SIZE];
+    char Subchunk2Size[C_SUBCHUNK2SIZE_SIZE];
 } WAV_Header;
 
 typedef struct WAV
@@ -74,7 +74,6 @@ typedef struct WAV
 class Audio
 {
     private:
-        WAV audio_wav;
         std::string path = "";
 
         int CountZeroCrossings(float * signal, int signal_size);
@@ -87,30 +86,31 @@ class Audio
 
     public:
 
+        WAV audio_wav;
         boost::float32_t * file; 
         WAV Load(std::string Path);
 
-        Audio()
-        {
-            
-        }
+        Audio(){}
         Audio(std::string Path)
         {
             path = Path;
             Load(path);
         }
+        ~Audio()
+        {
+            file = nullptr;
+        }
+
         boost::float32_t * ByteToFloat(uint8_t * bytes, int size);
         float CalculatePitch(float * signal, int signal_size, int sample_rate);
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);
-        int NumOfChannels();
-        bool StereoToMono();
-
-        int ToFrames();
-
-
-    friend class Bulk_Audio;
-    
+        int NumOfChannels(WAV * wav = nullptr);
+        boost::float32_t ** ToFrames(boost::float32_t * bytes, int sz);
+        /*
+         * Functions which modify the audio in some way 
+         */
+        bool StereoToMono(WAV * wav = nullptr);
 };
 
 class Bulk_Audio : Audio
@@ -125,8 +125,8 @@ class Bulk_Audio : Audio
             LoadFiles(Path);
         }
         
-        int LoadFiles(std::string path, bool recursive = false);
-        int LoadFiles(std::vector<std::string> path, bool recursive = false);
+        WAV * LoadFiles(std::string path, bool recursive = true);
+        WAV * LoadFiles(std::vector<std::string> path, bool recursive = true);
 };
 
 #endif //  __AUDIO_H__

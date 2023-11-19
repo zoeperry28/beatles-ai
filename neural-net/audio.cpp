@@ -1,7 +1,6 @@
 #include "audio.hpp"
 #include <math.h>
 #include <string>
-#include <fftw3.h>
 #include <stdexcept>
 #include <filesystem>
 #include <fstream>
@@ -9,12 +8,14 @@
 #include <charconv>
 #include <sstream>
 #include <iostream>
+#include <iostream>
+#include <typeinfo>
+
 #include <boost/dynamic_bitset.hpp>
 #include <boost/cstdfloat.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
-#include <iostream>
-#include <typeinfo>
+#include <fftw3.h>
 
 // Info on .wav file structure is taken from http://soundfile.sapp.org/doc/WaveFormat/
 
@@ -61,11 +62,8 @@ WAV Audio::Load(std::string Path = C_EMPTY_STRING)
     // This is done to enable the use of various audio analysis functions.
     file = ByteToFloat(audio_wav.Data, audio_wav.size);
 
-    GetAsFrames();
-
     return audio_wav;
 }
-
 
 /*
 * @brief Takes a byte array and converts it to boost::float.
@@ -117,33 +115,31 @@ int Audio::GetDataSize(std::string Path)
 {
     return std::filesystem::file_size(std::filesystem::path(Path)) - C_WAV_HEADER_SIZE;
 }
-
 /*
-* @brief Takes the audio data contained within the class and converts it to frames. 
-* @return The data as float, divided up into frames. 
-*/
-std::vector<boost::float32_t *> Audio::GetAsFrames()
-{
-    int int_sample_rate = GetAsInt(audio_wav.header.SampleRate, 4);
-    std::vector<boost::float32_t *> to_return;
-
-    int lo = 0;
-    int hi = int_sample_rate;
-
-    while (hi <= audio_wav.size)
+ * @brief This function takes an array of bytes from the .wav file and from it creates a set of frames, based on the sample rate
+ * @param bytes the bytes from the file. If this is not given, the bytes in the class will be used 
+ * @param sz the size of the data
+ * @return an array of pointers, pointing to each frame in the audio. 
+ */
+boost::float32_t ** Audio::ToFrames(boost::float32_t * bytes, int sz)
+{ 
+    int FrameRate = GetAsInt(audio_wav.header.SampleRate, C_SAMPLERATE_SIZE);
+    boost::float32_t * current_frame;
+    
+    int FrameCount = sz / FrameRate;
+    boost::float32_t ** to_return = (boost::float32_t **)malloc(FrameCount * sizeof(boost::float32_t *));
+    int ind = 0;
+    for (int i = 0 ; i < FrameCount; i++)
     {
-        boost::float32_t *temp = new boost::float32_t[int_sample_rate];
-
-        for (int i = 0; i < int_sample_rate; i++)
+        boost::float32_t * temp = (boost::float32_t *)malloc(FrameRate * sizeof(boost::float32_t *));
+        
+        for (int j = 0 ; j < FrameRate; j++)
         {
-            temp[i] = audio_wav.Data[lo + i];
+            temp[j] = bytes[ind];
+            ind = ind + 1;
         }
-
-        lo = hi;
-        hi += int_sample_rate;
-        to_return.push_back(temp);
+        to_return[i] = temp;
     }
-
     return to_return;
 }
 
@@ -171,24 +167,29 @@ int Audio::GetAsInt(char *c, int sz)
     return std::stoul(ne, nullptr, 16);
 }
 
-bool Audio::StereoToMono()
+bool Audio::StereoToMono(WAV * wav)
 {
     bool res = true;
 
+    if (wav == nullptr)
+    {
+        wav = &audio_wav;
+    }
+
     if (NumOfChannels() == 2)
     {
-        uint8_t* monoData = new uint8_t[audio_wav.size / 2];
+        uint8_t* monoData = new uint8_t[wav->size / 2];
 
-        for (int i = 0; i < audio_wav.size; i += 2)
+        for (int i = 0; i < wav->size; i += 2)
         {
-            uint32_t v = static_cast<uint32_t>(audio_wav.Data[i]) + audio_wav.Data[i + 1];
+            uint32_t v = static_cast<uint32_t>(wav->Data[i]) + wav->Data[i + 1];
 
             monoData[i / 2] = static_cast<uint8_t>(v / 2);
         }
 
-        audio_wav.Data = monoData;
-        audio_wav.header.NumChannels[0] = 1;
-        audio_wav.size = audio_wav.size / 2;
+        wav->Data = monoData;
+        wav->header.NumChannels[0] = 1;
+        wav->size = wav->size / 2;
     }
     else
     {
@@ -198,9 +199,12 @@ bool Audio::StereoToMono()
     return res;
 }
 
-
-int Audio::NumOfChannels()
+int Audio::NumOfChannels(WAV * wav)
 {
+    if (wav == nullptr)
+    {
+        wav = &audio_wav;
+    }
     return (int)audio_wav.header.NumChannels[0];
 }
 
@@ -244,16 +248,19 @@ std::string Audio::GetActualNote(float pitch, float reference_pitch)
     return (Notes[note_number  % C_UNIQUE_PITCHES] + std::to_string(note_number / C_UNIQUE_PITCHES + 1));
 } 
 
-int Bulk_Audio::LoadFiles(std::string path, bool recursive)
+WAV * Bulk_Audio::LoadFiles(std::string path, bool recursive)
 {
+    WAV * to_return; 
+    int inc;
     for (auto const& dir_entry : std::filesystem::recursive_directory_iterator(path))
     {
         if (dir_entry.is_regular_file())
         {
             try
             {
-                Audio::Load(dir_entry.path().string());
+                to_return[inc] = Audio::Load(dir_entry.path().string());
                 std::cout << "\033[1;32m[INFOS] " << dir_entry.path().string() << std::endl;
+                inc++;
             }
             catch(const std::exception& e)
             {
@@ -261,14 +268,17 @@ int Bulk_Audio::LoadFiles(std::string path, bool recursive)
             }
         }
     }
-    return 0;
+    return to_return;
 }
 
-int Bulk_Audio::LoadFiles(std::vector<std::string> path, bool recursive)
+WAV * Bulk_Audio::LoadFiles(std::vector<std::string> path, bool recursive)
 {
+    WAV * to_return;
+    int inc = 0; 
     for (std::string p : path)
     {
-        Audio::Load(p);
+        to_return[inc] = Audio::Load(p);
+        inc++;
     }
-    return 0;
+    return to_return;
 }

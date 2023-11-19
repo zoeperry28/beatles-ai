@@ -7,8 +7,10 @@
 
 int main(int argc, char * argv[]) 
 {
-    Bulk_Audio AudioReader("C:\\projects\\beatles-ai\\Data\\john");
-    std::cout << "hello" << std::endl;
+    Audio AudioReader("C:\\projects\\beatles-ai\\Data\\john\\1_imagine-vocal.wav");
+    Prime_Data P;
+    P.PrepareAudioData(&AudioReader);
+    std::cout << "DONE\n";
     return 0;
 }
 
