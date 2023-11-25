@@ -1,14 +1,14 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/cstdfloat.hpp>
+#include "audio.hpp"
 
 #ifndef _NEURAL_NET_HPP_
 #define _NEURAL_NET_HPP_
 
-#include "audio.hpp"
-
 #define C_INPUTSIZE_VALUE (0U)
 #define C_HIDDENLAYERSIZE_VALUE (0U)
 #define C_OUTPUTSIZE_VALUE (0U)
+#define C_NUMBER_OF_CHECKS (2)
 
 typedef struct NN_Input 
 {
@@ -47,13 +47,15 @@ const NN_LayerSizes LayerSizes =
 
 class Prime_Data
 {
+    AudioSuite * AS;   
     public:
-        Prime_Data()
-        {
-
+        Prime_Data(AudioSuite * audio)
+        { 
+            AS = audio;
         }
-        NN_Audio_Parameters * PrepareAudioData(Bulk_Audio * audio); 
-        NN_Audio_Parameters * PrepareAudioData(Audio * audio);
+        NN_Audio_Parameters * PrepareAudioData(WAV * wavs, int file_count);
+    
+    friend class Audio;
 };
 
 class Neural_Net

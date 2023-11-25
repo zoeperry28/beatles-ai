@@ -25,15 +25,11 @@
 *  @param  Path the path of the audio file to be loaded.
 *  @return whether the file was read or not. 
 */
-WAV Audio::Load(std::string Path = C_EMPTY_STRING) 
+WAV * AudioSuite::Load(std::string Path = "", bool recursive) 
 {
-    if (Path.empty() && path.empty())
+    if (Path.empty())
     {
         throw std::invalid_argument("Invalid file path!");
-    }
-    else if (path.empty() == false)
-    {
-        Path = path;
     }
 
     // Check if the file is opened successfully
@@ -52,16 +48,18 @@ WAV Audio::Load(std::string Path = C_EMPTY_STRING)
     std::vector<uint8_t> file_vec(result.begin(), result.end());
     uint8_t* conv_file_vec = file_vec.data();
 
-    audio_wav = GetHeaderFromBytes(Path, conv_file_vec);
+    WAV a = audio->GetHeaderFromBytes(Path, conv_file_vec);
 
     // Data should be converted to mono.
     StereoToMono();
 
     // Now, the obtained data will be converted to float. 
     // This is done to enable the use of various audio analysis functions.
-    file = ByteToFloat(audio_wav.Data, audio_wav.size);
+    a.fl_data = audio->ByteToFloat(a.Data, a.size);
 
-    return audio_wav;
+    a.frames = audio->ToFrames(a.fl_data, a.size);
+
+    return &a;
 }
 
 /*
@@ -123,8 +121,7 @@ int Audio::GetDataSize(std::string Path)
 boost::float32_t ** Audio::ToFrames(boost::float32_t * bytes, int sz)
 { 
     int FrameRate = GetAsInt(audio_wav.header.SampleRate, C_SAMPLERATE_SIZE);
-    boost::float32_t * current_frame;
-    
+
     int FrameCount = sz / FrameRate;
     boost::float32_t ** to_return = (boost::float32_t **)malloc(FrameCount * sizeof(boost::float32_t *)+1);
     int ind = 0;
@@ -167,16 +164,16 @@ int Audio::GetAsInt(char *c, int sz)
     return std::stoul(ne, nullptr, 16);
 }
 
-bool Audio::StereoToMono(WAV * wav)
+bool AudioSuite::StereoToMono(WAV * wav)
 {
     bool res = true;
-
+    bool is_good = true;
     if (wav == nullptr)
     {
-        wav = &audio_wav;
+        is_good = false;
     }
 
-    if (NumOfChannels() == 2)
+    if (NumOfChannels() == 2 && is_good == true)
     {
         uint8_t* monoData = new uint8_t[wav->size / 2];
 
@@ -199,16 +196,18 @@ bool Audio::StereoToMono(WAV * wav)
     return res;
 }
 
-int Audio::NumOfChannels(WAV * wav)
+int AudioSuite::NumOfChannels(WAV * wav)
 {
+    bool is_good = true;
     if (wav == nullptr)
     {
-        wav = &audio_wav;
+        is_good = false;
     }
-    return (int)audio_wav.header.NumChannels[0];
+
+    return (int)wav->header.NumChannels[0];
 }
 
-int Audio::CountZeroCrossings(boost::float32_t * signal, int signal_size)
+int AudioSuite::CountZeroCrossings(boost::float32_t * signal, int signal_size)
 {
     int crossings = 0;
 
@@ -223,12 +222,8 @@ int Audio::CountZeroCrossings(boost::float32_t * signal, int signal_size)
     return crossings;
 }
 
-float Audio::CalculatePitch(float * signal, int signal_size, int sample_rate)
+float AudioSuite::CalculatePitch(float * signal, int signal_size, int sample_rate)
 {
-    if (sample_rate == -1)
-    {
-        sample_rate = GetAsInt(audio_wav.header.SampleRate, C_SAMPLERATE_SIZE);
-    }
     float to_return = 0.0;
     int zero_crossings = CountZeroCrossings(signal, signal_size);
 
@@ -240,49 +235,24 @@ float Audio::CalculatePitch(float * signal, int signal_size, int sample_rate)
     return to_return;
 }
 
-int Audio::GetMidiNote(float pitch, float reference_pitch)
+int AudioSuite::GetMidiNote(float pitch, float reference_pitch)
 {
     return (C_REF_PITCH_NOTE_NUM + C_UNIQUE_PITCHES) * log2(pitch/reference_pitch);
 } 
 
-std::string Audio::GetActualNote(float pitch, float reference_pitch)
+std::string AudioSuite::GetActualNote(float pitch, float reference_pitch)
 {
     int note_number = GetMidiNote(pitch, reference_pitch);
     note_number -= C_MIDI_INDEX_ADJUST; // see the explanation below.
     return (Notes[note_number  % C_UNIQUE_PITCHES] + std::to_string(note_number / C_UNIQUE_PITCHES + 1));
 } 
 
-WAV * Bulk_Audio::LoadFiles(std::string path, bool recursive)
-{
-    WAV * to_return; 
-    int inc;
-    for (auto const& dir_entry : std::filesystem::recursive_directory_iterator(path))
-    {
-        if (dir_entry.is_regular_file())
-        {
-            try
-            {
-                to_return[inc] = Audio::Load(dir_entry.path().string());
-                std::cout << "\033[1;32m[INFOS] " << dir_entry.path().string() << std::endl;
-                inc++;
-            }
-            catch(const std::exception& e)
-            {
-                std::cerr << "\033[1;31m[ERROR] " << dir_entry.path().string() << " could not be loaded!\n";
-            }
-        }
-    }
-    return to_return;
-}
-
-WAV * Bulk_Audio::LoadFiles(std::vector<std::string> path, bool recursive)
-{
-    WAV * to_return;
-    int inc = 0; 
-    for (std::string p : path)
-    {
-        to_return[inc] = Audio::Load(p);
-        inc++;
-    }
-    return to_return;
-}
+//void AudioSuite::FourierTransform(WAV * wav)
+//{
+//
+//}
+//
+//void AudioSuite::Spectrogram(WAV * wav)
+//{
+//
+//}

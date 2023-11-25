@@ -1,27 +1,28 @@
 #include "neural_net.hpp"
 #include "audio.hpp"
 
-NN_Audio_Parameters * Prime_Data::PrepareAudioData(Audio * audio)
+NN_Audio_Parameters * Prime_Data::PrepareAudioData(WAV * wavs, int file_count)
 {
-    // This gives us an array of arrays which represent the floating point data from
-    // the audio file
-    boost::float32_t ** frames = audio->ToFrames(audio->file, audio->audio_wav.size);
-    boost::float32_t * Current = *frames;
-
-    NN_Audio_Parameters * Prepared_Data; 
-    while(Current != nullptr)
+    NN_Audio_Parameters * A_Audio_Parameters;
+    for (int i = 0 ; i < file_count; i++)
     {
-        NN_Audio_Parameters Audio_Parameters = {
-            Current, 
-            audio->CountZeroCrossings(Current, audio->audio_wav.size),
-            audio->CalculatePitch(Current, audio->audio_wav.size)
-        };
-        Prepared_Data = &Audio_Parameters;
-        Prepared_Data++;
-        Current++;
-    }
+        //This gives us an array of arrays which represent the floating point data from
+        //the audio file
+        boost::float32_t * Current = wavs[i].frames[0];
 
-    return Prepared_Data;
+        while(Current != nullptr)
+        {
+            NN_Audio_Parameters Audio_Parameters = {
+                Current, 
+                AS->CountZeroCrossings(Current, wavs[i].size),
+                AS->CalculatePitch(Current, wavs[i].size)
+            };
+            A_Audio_Parameters = &Audio_Parameters;
+            A_Audio_Parameters++;
+            Current++;
+        }
+    }
+    return A_Audio_Parameters;
 }
 
 int Neural_Net::Feed_Forward(NN_Audio_Parameters * Prepared_Data)

@@ -66,67 +66,67 @@ typedef struct WAV_Header {
 
 typedef struct WAV
 {
+    std::string path; 
     WAV_Header header;
     uint8_t* Data;
+    boost::float32_t * fl_data;
     int size;
+    boost::float32_t ** frames;
 } WAV;
 
 class Audio
 {
     private:
-        std::string path = "";
-
-        WAV GetHeaderFromBytes(std::string path, uint8_t * bytes);
+        boost::float32_t * float_data;
         int GetDataSize(std::string Path);
         uint8_t * GetData(std::string Path, uint8_t * data);
         std::vector<boost::float32_t *> GetAsFrames();
         std::vector<Frame> ExtractFrameData();
         int GetAsInt(char *c, int sz);
+        boost::float32_t * ByteToFloat(uint8_t * bytes, int size);
+        boost::float32_t ** ToFrames(boost::float32_t * bytes, int sz);
 
     public:
-
         WAV audio_wav;
-        boost::float32_t * file; 
-        WAV Load(std::string Path);
+        boost::float32_t DataAsFloat();
+        WAV GetHeaderFromBytes(std::string path, uint8_t * bytes);
 
-        Audio(){}
         Audio(std::string Path)
         {
-            path = Path;
-            Load(path);
+        }
+        Audio(std::vector<std::string> Path)
+        {
+        }
+        Audio()
+        {
+            
         }
         ~Audio()
         {
-            file = nullptr;
         }
-        
+
+    friend class AudioSuite;
+};
+
+/*
+ * @brief This class defines a bunch of useful functions which can be performed on audio data. 
+ */ 
+class AudioSuite
+{
+    public:
+        Audio * audio;
+        std::vector<Audio> files; 
+
+        WAV * Load(std::string Path, bool recursive = true);
+        WAV * Load(std::vector<std::string> path, bool recursive = true);
         int CountZeroCrossings(boost::float32_t * signal, int signal_size);
-        boost::float32_t * ByteToFloat(uint8_t * bytes, int size);
         float CalculatePitch(float * signal, int signal_size, int sample_rate=-1);
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);
         int NumOfChannels(WAV * wav = nullptr);
-        boost::float32_t ** ToFrames(boost::float32_t * bytes, int sz);
-        /*
-         * Functions which modify the audio in some way 
-         */
         bool StereoToMono(WAV * wav = nullptr);
-};
-
-class Bulk_Audio : Audio
-{
-    public: 
-        Bulk_Audio()
-        {
-            
-        }
-        Bulk_Audio(std::string Path)
-        {
-            LoadFiles(Path);
-        }
-        
-        WAV * LoadFiles(std::string path, bool recursive = true);
-        WAV * LoadFiles(std::vector<std::string> path, bool recursive = true);
+    
+    friend class audio;
 };
 
 #endif //  __AUDIO_H__

@@ -7,6 +7,8 @@
 
 int main(int argc, char * argv[]) 
 {	
+	AudioSuite * AudioReader;
+	Prime_Data PD(AudioReader);
 	// DATA GATHERING
 	if (argc > 2 && argv[1] == "-d" || argv[1] == "-D")
 	{
@@ -43,19 +45,20 @@ int main(int argc, char * argv[])
 		 * 2. Go through all of the files recursively. Perform the defined data checks 
 		 *	  on each of the files. 
 		 */
-		Bulk_Audio * AudioReader;
 
 		WAV * wavs = (WAV *)malloc(paths.size()); 
 		for (int i = 0 ; i < paths.size(); i++)
 		{
-			wavs[i] = *AudioReader->LoadFiles(paths[i], true);
+			wavs[i] = *AudioReader->Load(paths[i], true);
 			// perform the data checks - the wav data will be stored along side the actual data that has beeen produced. 
+			
 		}
-
+		PD.PrepareAudioData(wavs, paths.size());
 		/*
 		 * 3. Once all of the files have been checked, take the values and put them
 		 *    into a CSV file.
 		 */
+
 
 		/* 4. If specified by the user, the data can be saved with a specific name */
 	}
@@ -86,9 +89,8 @@ int main(int argc, char * argv[])
 		//    the model
 		// 4. A log of the execution should also be stored off, detailing parameters used.
 		Audio AudioReader("C:\\projects\\beatles-ai\\Data\\john\\1_imagine-vocal.wav");
-		Prime_Data P;
 		Neural_Net NN;
-		NN_Audio_Parameters * param = P.PrepareAudioData(&AudioReader);
+		NN_Audio_Parameters * param = PD.PrepareAudioData(&AudioReader.audio_wav, 1);
 		NN.Feed_Forward(param);
 		std::cout << "DONE\n";
 		return 0;
