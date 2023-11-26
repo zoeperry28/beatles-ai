@@ -21,10 +21,13 @@ class CSVWriter
 
         }
         void SetHeader(std::vector<std::string> headers);
-        bool AddLine(std::map<std::string, void *>);
+
+        bool AddLine(const std::map<std::string, std::string>& new_line);
+        bool AddLine(const std::map<std::string, float>& new_line);
+
         void Export(std::string filename);
     private:
-        std::map<std::string, std::string> FixTypes(std::map<std::string, void *> new_line);
+        //std::map<std::string, std::string> FixTypes(std::map<std::string, void *> new_line);
         std::map<std::string, std::vector<std::string>> store; 
         bool VerifyHeaders(std::map<std::string, std::string>);  
         std::string CastVoid(void * to_cast);

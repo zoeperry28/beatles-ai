@@ -24,15 +24,33 @@ std::string CSVWriter::CastVoid(void * to_cast)
     char * x = reinterpret_cast<char *>(&to_cast);
     return std::string(x);
 }
-std::map<std::string, std::string> CSVWriter::FixTypes(std::map<std::string, void *> new_line)
+
+bool IsFloat(float to_check)
 {
-    std::map<std::string, std::string> new_values;
-    for(std::map<std::string, void *>::iterator it = new_line.begin(); it != new_line.end(); ++it) 
+    bool to_return = false;
+
+    int to_mod = (int) to_check;
+    if (to_check / to_mod != 1 && to_check != 0)
     {
-        new_values.insert({it->first, CastVoid(it->second)});
-    };
-    return new_values;
+        to_return = true; 
+    }
+    else if (to_check == 0 && to_mod == 0)
+    {
+        to_return = false;
+    }
+
+    return to_return;
 }
+
+//std::map<std::string, std::string> CSVWriter::FixTypes(std::map<std::string, void *> new_line)
+//{
+//    std::map<std::string, std::string> new_values;
+//    for(std::map<std::string, float>::iterator it = new_line.begin(); it != new_line.end(); ++it) 
+//    {
+//        new_values.insert({it->first, std::to_string(it->second)});
+//    };
+//    return new_values;
+//}
 
 bool CSVWriter::VerifyHeaders(std::map<std::string, std::string> data)
 {
@@ -61,25 +79,44 @@ void CSVWriter::SetHeader(std::vector<std::string> headers)
     }
 }
 
-bool CSVWriter::AddLine(std::map<std::string, void *> new_line)
+bool CSVWriter::AddLine(const std::map<std::string, std::string>& new_line)
 {
-    std::map<std::string, std::string> Nnew_line = FixTypes(new_line);
-    bool Success = true;
-    if (store.empty() == false && VerifyHeaders(Nnew_line) == true)
+    if (!store.empty() && VerifyHeaders(new_line))
     {
-        for(std::map<std::string, std::string>::iterator it = Nnew_line.begin(); it != Nnew_line.end(); ++it) 
+        for(const auto& entry : new_line) 
         {
-            // get the value found at the key in the class data 
-            std::vector<std::string> cur = store.at(it->first); 
-            cur.push_back(it->second);
-            store.insert({it->first, cur});
+            auto it = store.find(entry.first);
+            if (it != store.end())
+            {
+                it->second.push_back(entry.second);
+            }
+            else
+            {
+                // Handle the case where the key is not found in store
+                // You may choose to ignore, add a default value, or handle it based on your requirements.
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+
+bool CSVWriter::AddLine(const std::map<std::string, float>& new_line)
+{
+    std::map<std::string, std::string> to_return;
+    for(auto const& imap: new_line)
+    {
+        if (IsFloat(imap.second))
+        {
+            to_return.insert({imap.first, std::to_string(imap.second)});
+        }
+        else
+        {
+            to_return.insert({imap.first, std::to_string((int) imap.second)});
         }
     }
-    else
-    {
-        Success = false; 
-    }
-    return Success;
+    return AddLine(to_return);
 }
 
 void CSVWriter::Export(std::string filename)
@@ -122,6 +159,7 @@ void CSVWriter::Export(std::string filename)
             }
         }
     }
+    std::cout << to_write;
     std::ofstream myfile;
     myfile.open (filename);
     myfile << to_write;
