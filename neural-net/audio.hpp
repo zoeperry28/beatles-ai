@@ -72,6 +72,7 @@ typedef struct WAV
     boost::float32_t * fl_data;
     int size;
     boost::float32_t ** frames;
+    int frame_count;
 } WAV;
 
 class Audio
@@ -125,6 +126,11 @@ class AudioSuite
         std::string GetActualNote(float pitch, float reference_pitch);
         int NumOfChannels(WAV * wav = nullptr);
         bool StereoToMono(WAV * wav = nullptr);
+        void FourierTransform(WAV * wav);
+        void Spectrogram(WAV * wav);
+        boost::float32_t GetAmplitude(boost::float32_t * frame);
+    private:
+        void Windowing(WAV * wav);
     
     friend class audio;
 };

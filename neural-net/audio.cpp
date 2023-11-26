@@ -247,12 +247,7 @@ std::string AudioSuite::GetActualNote(float pitch, float reference_pitch)
     return (Notes[note_number  % C_UNIQUE_PITCHES] + std::to_string(note_number / C_UNIQUE_PITCHES + 1));
 } 
 
-//void AudioSuite::FourierTransform(WAV * wav)
-//{
-//
-//}
-//
-//void AudioSuite::Spectrogram(WAV * wav)
-//{
-//
-//}
+void AudioSuite::Spectrogram(WAV * wav)
+{
+
+}

@@ -7,10 +7,25 @@
 
 int main(int argc, char * argv[]) 
 {	
+	CSVWriter CSV({"test1", "test2", "test3"});
+	CSV.AddLine(
+	{
+		{"test1", (int *)0},
+		{"test2", (int *)1},
+		{"test3", (int *)2}
+	});
+	CSV.AddLine(
+	{
+		{"test1", (int *)94},
+		{"test2", (int *)94},
+		{"test3", (int *)94}
+	});
+	CSV.Export("blah.csv");
+
 	AudioSuite * AudioReader;
 	Prime_Data PD(AudioReader);
 	// DATA GATHERING
-	if (argc > 2 && argv[1] == "-d" || argv[1] == "-D")
+	if ((argc > 2 && argv[1] == "-d") || (argv[1] == "-D"))
 	{
 		/*
 		 * 1. check if the file given by the user is a folder or a file. 
@@ -58,7 +73,6 @@ int main(int argc, char * argv[])
 		 * 3. Once all of the files have been checked, take the values and put them
 		 *    into a CSV file.
 		 */
-
 
 		/* 4. If specified by the user, the data can be saved with a specific name */
 	}
