@@ -53,12 +53,6 @@ const std::string C_EMPTY_STRING = "NONE";
 
 const std::string Notes [C_UNIQUE_PITCHES] = {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
 
-struct HannWindow
-{
-    std::vector<boost::float32_t> Points;
-    std::pair<int, int> start_and_end; 
-};
-
 typedef struct Frame
 {
     boost::float32_t * Frame;
@@ -98,7 +92,8 @@ typedef struct WAV
     WAV_File header;
 
     std::string path; 
-    std::vector<boost::float32_t> fl_data = {};
+    std::vector<float> fl_data;
+    std::vector<float> windows; 
 
     int size;
 
@@ -116,10 +111,11 @@ class AudioSuite
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);
         bool StereoToMono(WAV& wav );
+
+        void Windowing(WAV& wav);
         void FourierTransform(WAV& wav);
         void Spectrogram(WAV * wav);
     private:
-        std::vector<HannWindow> Windowing(WAV& wav);
         std::vector<std::vector<boost::float32_t>> GetFrames(WAV& wav);
 
     friend class Audio;

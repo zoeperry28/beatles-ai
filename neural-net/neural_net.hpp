@@ -31,6 +31,13 @@ typedef struct NEURAL_NET_Params
     NN_LayerSizes Sizes;
 } NEURAL_NET_Params;
 
+const std::vector<std::string> HEADERS =
+{
+    "FRAMES",
+    "ZERO_CROSSINGS",
+    "PITCH"
+};
+
 typedef struct NN_Audio_Parameters
 {
     boost::float32_t * frames; 
@@ -67,7 +74,8 @@ class Prime_Data
             AS = &audio;
         }
         NN_Audio_Parameters * PrepareAudioData(std::vector<WAV *>& wav);
-    
+        void Write_Data(std::string filename, std::vector<NN_Audio_Parameters>& AP);
+
     friend class Audio;
     friend class Neural_Net_Modes;
 };

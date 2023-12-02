@@ -55,14 +55,18 @@ WAV * AudioSuite::Load(std::string Path = "", bool recursive)
 
     StereoToMono(*result);
 
-    std::vector<boost::float32_t> n;
+    std::vector<float> n;
+    // Assuming result->header.Data and result->fl_data have the same size
+    result->fl_data.resize(result->header.Data.size());
+
     for (int i = 0; i < result->header.Data.size(); i++)
     {
-        n.push_back((boost::float32_t)result->header.Data[i]);
+        result->fl_data[i] = static_cast<float>(result->header.Data[i]);
     }
 
-    result->fl_data = n;
-    GetFrames(*result);
+    Windowing(*result);
+
+    FourierTransform(*result);
 
     return result;
 }
@@ -146,16 +150,47 @@ void AudioSuite::Spectrogram(WAV * wav)
 
 void AudioSuite::FourierTransform(WAV& wav)
 {
-    std::vector<HannWindow> HW = Windowing(wav);
-    for (const auto& window : HW)
-    {
-        std::vector<boost::float32_t> to_check = window.Points;
-        for (int point = 0; point < to_check.size(); point++)
-        {
+    // Define the size of the input sequence
+    int N = wav.size;
 
-        }
+    // Create input and output arrays
+    float* out = static_cast<float*>(malloc(N * sizeof(float)));
+    if (!out) {
+        std::cerr << "Memory allocation failed for out array." << std::endl;
+        return;
     }
+
+    float* in = static_cast<float*>(malloc(N * sizeof(float)));
+    if (!in) {
+        std::cerr << "Memory allocation failed for in array." << std::endl;
+        free(out);  // Free previously allocated memory
+        return;
+    }
+
+    std::copy(wav.windows.begin(), wav.windows.end(), in);
+
+    // Create a FFTW plan
+    fftw_complex* fftw_in = reinterpret_cast<fftw_complex*>(in);
+    fftw_complex* fftw_out = reinterpret_cast<fftw_complex*>(out);
+
+    fftw_plan plan = fftw_plan_dft_1d(N, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
+
+    if (!plan) {
+        std::cerr << "FFTW plan creation failed." << std::endl;
+        free(in);   // Free allocated memory
+        free(out);
+        return;
+    }
+
+    // Execute the plan to compute the Fourier transform
+    fftw_execute(plan);
+
+    // Clean up
+    fftw_destroy_plan(plan);
+    free(in);
+    free(out);
 }
+
 
 /////////////////////////
 
@@ -178,19 +213,18 @@ std::vector<std::vector<boost::float32_t>> AudioSuite::GetFrames(WAV &wav)
     return to_return;
 }
 
-std::vector<HannWindow> AudioSuite::Windowing(WAV& wav)
+void AudioSuite::Windowing(WAV& wav)
 {
-    std::vector<HannWindow> vWN;
-    HannWindow wv;
-    for (int i = 0; i < wav.size; i++)
+    std::cout << "Data size: " << wav.size << std::endl;
+
+    wav.windows.clear();
+
+    std::vector<float> all(wav.size);
+
+    for (int n = 0; n < wav.size; ++n)
     {
-        for (int j = i; j < i+C_HANN_WINDOW_SIZE_L; j++)
-        {
-            wv.Points.push_back((std::pow(std::sin(std::numbers::pi * wav.header.Data[j] / C_HANN_WINDOW_SIZE_L), 2)));  
-        }
-        wv.start_and_end = { i, i+C_HANN_WINDOW_SIZE_L};
-        vWN.push_back(wv);
-        wv = {};
+        all[n] = 0.5f * (1 - std::cos((2 * std::numbers::pi * wav.fl_data[n]) / C_HANN_WINDOW_SIZE_L));
     }
-    return vWN;
+
+    wav.windows = all;
 }

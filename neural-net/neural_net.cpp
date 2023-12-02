@@ -28,6 +28,22 @@
 //
 //}
 
+void Prime_Data::Write_Data(std::string filename, std::vector<NN_Audio_Parameters>& AP)
+{
+    std::string to_return = "";
+    for (int heading = 0; heading < HEADERS.size(); heading++)
+    {
+        if (heading != HEADERS.size() - 1)
+        {
+            to_return = to_return + HEADERS[heading] + ",";
+        }
+        else
+        {
+            to_return = to_return + HEADERS[heading] + "\n";
+        }
+    }
+}
+
 NN_Audio_Parameters* Prime_Data::PrepareAudioData(std::vector<WAV *>& wav)
 {
     NN_Audio_Parameters * A_Audio_Parameters = nullptr;
@@ -108,10 +124,15 @@ bool Neural_Net_Modes::Data_Gathering(std::vector<std::string>& files)
 {
     AudioSuite AS;
     Prime_Data PD;
+    //std::vector<std::vector<HannWindow>> HannWindows;
 
     std::vector<WAV*>wavs = Get_Wavs(files);
+    for (int i = 0; i < wavs.size(); i++)
+    {
+        //HannWindows.push_back(AS.Windowing(*wavs[i]));
+    }
     PD.PrepareAudioData(wavs);
-
+    
     return false;
 }
 
