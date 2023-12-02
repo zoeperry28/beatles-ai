@@ -5,4 +5,6 @@ rm *.vcxproj *.vcxproj.filters *.sln
 cmake neural-net
 cmake --build .
 
+neural-net\build\beatles_ai.exe -d -F "C:/projects/beatles-ai/Data/george" 
+
 pause

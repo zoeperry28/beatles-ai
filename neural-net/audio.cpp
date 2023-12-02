@@ -10,10 +10,10 @@
 #include <iostream>
 #include <iostream>
 #include <typeinfo>
+#include <numbers> // std::numbers
 
 #include <boost/dynamic_bitset.hpp>
 #include <boost/cstdfloat.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <fftw3.h>
 
@@ -25,168 +25,71 @@
 *  @param  Path the path of the audio file to be loaded.
 *  @return whether the file was read or not. 
 */
-WAV * AudioSuite::Load(std::string Path = "", bool recursive) 
+WAV * AudioSuite::Load(std::string Path = "", bool recursive)
 {
-    if (Path.empty())
-    {
-        throw std::invalid_argument("Invalid file path!");
-    }
+    std::ifstream input(Path, std::ios::binary);
 
-    // Check if the file is opened successfully
-    std::ifstream ifs(Path, std::ios::binary | std::ios::ate);
-    if (!ifs.is_open())
-    {
-        throw std::runtime_error("Failed to open file: " + Path);
-    }
+    std::vector<char> bytes(
+        (std::istreambuf_iterator<char>(input)),
+        (std::istreambuf_iterator<char>()));
 
-    std::ifstream::pos_type pos = ifs.tellg();
-    std::vector<char> result(pos);
+    input.close();
 
-    ifs.seekg(0, std::ios::beg);
-    ifs.read(&result[0], pos);
+    WAV* result = new WAV;
 
-    std::vector<uint8_t> file_vec(result.begin(), result.end());
-    uint8_t* conv_file_vec = file_vec.data();
-
-    WAV a = audio->GetHeaderFromBytes(Path, conv_file_vec);
-
-    // Data should be converted to mono.
-    StereoToMono();
-
-    // Now, the obtained data will be converted to float. 
-    // This is done to enable the use of various audio analysis functions.
-    a.fl_data = audio->ByteToFloat(a.Data, a.size);
-
-    a.frames = audio->ToFrames(a.fl_data, a.size);
-
-    return &a;
-}
-
-/*
-* @brief Takes a byte array and converts it to boost::float.
-* @param bytes The bytes to be converted to boost::float
-* @param size The size of the audio data
-* @return A pointer to the boost::float pointer.
-*/
-boost::float32_t* Audio::ByteToFloat(uint8_t* bytes, int size)
-{
-    if (size == -1)
-    {
-        size = audio_wav.size;
-    }
-    if (bytes == nullptr)
+    if (bytes.size() < sizeof(WAV))
     {
         return nullptr;
     }
+    WAV* wav = reinterpret_cast<WAV*>(bytes.data());
+    result = std::move(wav);
+    result->size = bytes.size() - C_WAV_File_SIZE;
 
-    boost::float32_t* f = new boost::float32_t[size];
+    // Calculate the size of the data
+    std::size_t dataSize = bytes.size() - C_WAV_File_SIZE;
 
-    for (int i = 0; i < size; i++)
+    // Copy the data portion into the data vector
+    result->header.Data.resize(dataSize);
+
+    std::memcpy(result->header.Data.data(), bytes.data() + C_WAV_File_SIZE, dataSize);
+
+    StereoToMono(*result);
+
+    std::vector<boost::float32_t> n;
+    for (int i = 0; i < result->header.Data.size(); i++)
     {
-        f[i] = static_cast<boost::float32_t>(bytes[i]);
+        n.push_back((boost::float32_t)result->header.Data[i]);
     }
 
-    return f;
-}
+    result->fl_data = n;
+    GetFrames(*result);
 
-/*
-* @brief Takes a byte array and extracts the .wav header from it. It is assumed that the data given is a wav.
-* @param bytes The bytes to be used
-* @return A data structure representing the layout of a .wav file, including the header.
-*/
-WAV Audio::GetHeaderFromBytes(std::string path, uint8_t * bytes)
-{
-    WAV wav;
-    memcpy(&wav.header, bytes, sizeof(WAV_Header));
-    wav.Data = bytes + sizeof(WAV_Header);
-    wav.size = GetDataSize(path);
-    return wav;
-}
-
-/*
-* @brief Gets the size of the audio data from the file path.
-* @param Path The location of the audio file.
-* @return The data size minus the size of the header. 
-*/
-int Audio::GetDataSize(std::string Path)
-{
-    return std::filesystem::file_size(std::filesystem::path(Path)) - C_WAV_HEADER_SIZE;
-}
-/*
- * @brief This function takes an array of bytes from the .wav file and from it creates a set of frames, based on the sample rate
- * @param bytes the bytes from the file. If this is not given, the bytes in the class will be used 
- * @param sz the size of the data
- * @return an array of pointers, pointing to each frame in the audio. 
- */
-boost::float32_t ** Audio::ToFrames(boost::float32_t * bytes, int sz)
-{ 
-    int FrameRate = GetAsInt(audio_wav.header.SampleRate, C_SAMPLERATE_SIZE);
-
-    int FrameCount = sz / FrameRate;
-    boost::float32_t ** to_return = (boost::float32_t **)malloc(FrameCount * sizeof(boost::float32_t *)+1);
-    int ind = 0;
-    for (int i = 0 ; i < FrameCount; i++)
-    {
-        boost::float32_t * temp = (boost::float32_t *)malloc(FrameRate * sizeof(boost::float32_t *));
-        
-        for (int j = 0 ; j < FrameRate; j++)
-        {
-            temp[j] = bytes[ind];
-            ind = ind + 1;
-        }
-        to_return[i] = temp;
-    }
-    to_return[FrameCount] = nullptr;
-    return to_return;
+    return result;
 }
 
 /*********************************************************************************************************************/
 
-int Audio::GetAsInt(char *c, int sz)
-{
-    char buf[5];
-    std::string ne = "";
-    for (int i = 0 ; i < sz; i ++)
-    {
-        sprintf(buf, "%x", c[i]);
-        std::string v = std::string(buf);
-
-        if (v.size() > 2)
-        {
-            v = v.substr(v.size()-2, v.size());
-        }
-        else if (v.size() == 1 && v == "0")
-        {
-            v = "00";
-        }
-        ne = ne + v;
-    }
-    return std::stoul(ne, nullptr, 16);
-}
-
-bool AudioSuite::StereoToMono(WAV * wav)
+bool AudioSuite::StereoToMono(WAV& wav)
 {
     bool res = true;
     bool is_good = true;
-    if (wav == nullptr)
+    if (&wav == nullptr)
     {
         is_good = false;
     }
 
-    if (NumOfChannels() == 2 && is_good == true)
+    if (is_good == true)
     {
-        uint8_t* monoData = new uint8_t[wav->size / 2];
+        std::vector<char> monoData;
 
-        for (int i = 0; i < wav->size; i += 2)
+        for (int i = 0; i < wav.header.Data.size(); i+=2)
         {
-            uint32_t v = static_cast<uint32_t>(wav->Data[i]) + wav->Data[i + 1];
-
-            monoData[i / 2] = static_cast<uint8_t>(v / 2);
+            monoData.push_back((wav.header.Data[i] + wav.header.Data[i+1]) / 2);
         }
 
-        wav->Data = monoData;
-        wav->header.NumChannels[0] = 1;
-        wav->size = wav->size / 2;
+        wav.header.Data = monoData;
+        wav.header.NumChannels = 1;
+        wav.size = wav.size / 2;
     }
     else
     {
@@ -194,17 +97,6 @@ bool AudioSuite::StereoToMono(WAV * wav)
     }
 
     return res;
-}
-
-int AudioSuite::NumOfChannels(WAV * wav)
-{
-    bool is_good = true;
-    if (wav == nullptr)
-    {
-        is_good = false;
-    }
-
-    return (int)wav->header.NumChannels[0];
 }
 
 int AudioSuite::CountZeroCrossings(boost::float32_t * signal, int signal_size)
@@ -250,4 +142,55 @@ std::string AudioSuite::GetActualNote(float pitch, float reference_pitch)
 void AudioSuite::Spectrogram(WAV * wav)
 {
 
+}
+
+void AudioSuite::FourierTransform(WAV& wav)
+{
+    std::vector<HannWindow> HW = Windowing(wav);
+    for (const auto& window : HW)
+    {
+        std::vector<boost::float32_t> to_check = window.Points;
+        for (int point = 0; point < to_check.size(); point++)
+        {
+
+        }
+    }
+}
+
+/////////////////////////
+
+std::vector<std::vector<boost::float32_t>> AudioSuite::GetFrames(WAV &wav)
+{
+    std::vector<std::vector<boost::float32_t>> to_return;
+    std::vector<boost::float32_t> current; 
+
+    int frame_size = wav.header.SampleRate - 1;
+
+    for (int count = 0; count < wav.fl_data.size(); count++)
+    {
+        if (count % frame_size == 0)
+        {
+            to_return.push_back(current);
+            current = {};
+        }
+        current.push_back(wav.fl_data[count]);
+    }
+    return to_return;
+}
+
+std::vector<HannWindow> AudioSuite::Windowing(WAV& wav)
+{
+    std::vector<HannWindow> vWN;
+    HannWindow wv;
+    for (int i = 0; i < wav.size; i++)
+    {
+        for (int j = i; j < i+C_HANN_WINDOW_SIZE_L; j++)
+        {
+            wv.Points.push_back((std::pow(std::sin(std::numbers::pi * wav.header.Data[j] / C_HANN_WINDOW_SIZE_L), 2)));  
+        }
+        wv.start_and_end = { i, i+C_HANN_WINDOW_SIZE_L};
+        vWN.push_back(wv);
+        wv = {};
+    }
+    return vWN;
 }

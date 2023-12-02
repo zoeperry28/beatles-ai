@@ -1,6 +1,8 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/cstdfloat.hpp>
 #include "audio.hpp"
+#include <tuple>
+#include <vector>
 
 #ifndef _NEURAL_NET_HPP_
 #define _NEURAL_NET_HPP_
@@ -37,6 +39,13 @@ typedef struct NN_Audio_Parameters
 
 } NN_Audio_Parameters;
 
+typedef enum Neural_Net_Mode
+{
+    E_NO_MODE = 0,
+    E_DATA_GATHERING = 1, 
+    E_TRAINING = 2, 
+    E_EXECUTION = 3
+} Neural_Net_Mode;
 
 const NN_LayerSizes LayerSizes = 
 {
@@ -49,13 +58,18 @@ class Prime_Data
 {
     AudioSuite * AS;   
     public:
-        Prime_Data(AudioSuite * audio)
-        { 
-            AS = audio;
+        Prime_Data()
+        {
+
         }
-        NN_Audio_Parameters * PrepareAudioData(WAV * wavs, int file_count);
+        Prime_Data(AudioSuite& audio)
+        { 
+            AS = &audio;
+        }
+        NN_Audio_Parameters * PrepareAudioData(std::vector<WAV *>& wav);
     
     friend class Audio;
+    friend class Neural_Net_Modes;
 };
 
 class Neural_Net
@@ -63,6 +77,9 @@ class Neural_Net
     private:
         NEURAL_NET_Params params;
     public:
+
+        std::tuple<std::string, int, boost::float32_t> CSV_Line;
+
         Neural_Net()
         {
 
@@ -73,6 +90,17 @@ class Neural_Net
         }
         int Feed_Forward(NN_Audio_Parameters * Prepared_Data);
         int Fetch_Result();
+};
+
+class Neural_Net_Modes : AudioSuite
+{
+    private: 
+        static std::vector<WAV*> Get_Wavs(std::vector<std::string>& files);
+    public:
+        static Neural_Net_Mode ParseArgs(const std::string& MODE);
+        static bool Data_Gathering(std::vector<std::string>& files);
+        static bool Training(std::vector<std::string>& files);
+        static bool Execution(std::vector<std::string>& files);
 };
 
 #endif // NEURAL_NET_HPP

@@ -7,12 +7,14 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/cstdfloat.hpp>
 
+
+#define C_BITFIELD_MUL (8)
+#define C_NO_OF_EMPTY_FIELDS (5)
 #define C_REF_PITCH_NOTE_NUM (69)
 #define C_UNIQUE_PITCHES (12)
 #define C_MIDI_INDEX_ADJUST (21)
-#define C_WAV_HEADER_SIZE (78)
 #define C_MB_TO_BYTES (1e+6)
-
+#define C_HANN_WINDOW_SIZE_L (10)
 // WAV Header Sizes
 #define C_CHUNKID_SIZE       (4U)
 #define C_CHUNKSIZE_SIZE     (4U)
@@ -29,11 +31,33 @@
 #define C_SUBCHUNK2ID_SIZE   (4U)
 #define C_SUBCHUNK2SIZE_SIZE (4U)
 
+const int C_WAV_File_SIZE =
+    C_CHUNKID_SIZE +
+    C_CHUNKSIZE_SIZE +
+    C_FORMAT_SIZE +
+    C_SUBCHUNK1ID_SIZE +
+    C_SUBCHUNK1SIZE_SIZE +
+    C_AUDIOFORMAT_SIZE +
+    C_NUMCHANNELS_SIZE +
+    C_SAMPLERATE_SIZE +
+    C_BYTERATE_SIZE +
+    C_BLOCKALIGN_SIZE +
+    C_BITSPERSAMPLE_SIZE +
+    C_EMPTY_SIZE +
+    C_SUBCHUNK2ID_SIZE +
+    C_SUBCHUNK2SIZE_SIZE
+;
 const std::string C_EMPTY_STRING = "NONE";
 
 // Info on .wav file structure is taken from http://soundfile.sapp.org/doc/WaveFormat/
 
 const std::string Notes [C_UNIQUE_PITCHES] = {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
+
+struct HannWindow
+{
+    std::vector<boost::float32_t> Points;
+    std::pair<int, int> start_and_end; 
+};
 
 typedef struct Frame
 {
@@ -44,70 +68,41 @@ typedef struct Frame
 
 } Frame;
 
-typedef struct WAV_Header {
-    // RIFF Chunk
-    char ChunkID      [C_CHUNKID_SIZE];
-    char ChunkSize    [C_CHUNKSIZE_SIZE];
-    char Format       [C_FORMAT_SIZE];
-    // FMT Chunk
-    char Subchunk1ID  [C_SUBCHUNK1ID_SIZE];
-    char Subchunk1Size[C_SUBCHUNK1SIZE_SIZE];
-    char AudioFormat  [C_AUDIOFORMAT_SIZE];
-    char NumChannels  [C_NUMCHANNELS_SIZE];
-    char SampleRate   [C_SAMPLERATE_SIZE];
-    char ByteRate     [C_BYTERATE_SIZE];
-    char BlockAlign   [C_BLOCKALIGN_SIZE];
-    char BitsPerSample[C_BITSPERSAMPLE_SIZE];
-    char EMPTY        [C_EMPTY_SIZE];
-    // DATA Chunk
-    char Subchunk2ID  [C_SUBCHUNK2ID_SIZE];
-    char Subchunk2Size[C_SUBCHUNK2SIZE_SIZE];
-} WAV_Header;
+typedef struct WAV_File {
+    uint32_t ChunkID        :C_BITFIELD_MUL * C_CHUNKID_SIZE;
+    uint32_t ChunkSize      :C_BITFIELD_MUL * C_CHUNKSIZE_SIZE;
+    uint32_t Format         :C_BITFIELD_MUL * C_FORMAT_SIZE;
+    uint32_t Subchunk1ID    :C_BITFIELD_MUL * C_SUBCHUNK1ID_SIZE;
+    uint32_t Subchunk1Size  :C_BITFIELD_MUL * C_SUBCHUNK1SIZE_SIZE;
+    uint32_t AudioFormat    :C_BITFIELD_MUL * C_AUDIOFORMAT_SIZE;
+    uint32_t NumChannels    :C_BITFIELD_MUL * C_NUMCHANNELS_SIZE;
+    uint32_t SampleRate     :C_BITFIELD_MUL * C_SAMPLERATE_SIZE;
+    uint32_t ByteRate       :C_BITFIELD_MUL * C_BYTERATE_SIZE;
+    uint32_t BlockAlign     :C_BITFIELD_MUL * C_BLOCKALIGN_SIZE;
+    uint32_t BitsPerSample  :C_BITFIELD_MUL * C_BITSPERSAMPLE_SIZE;
+    uint64_t EMPTY0         :(C_BITFIELD_MUL * C_EMPTY_SIZE) / C_NO_OF_EMPTY_FIELDS;
+    uint64_t EMPTY1         :(C_BITFIELD_MUL * C_EMPTY_SIZE) / C_NO_OF_EMPTY_FIELDS;
+    uint64_t EMPTY2         :(C_BITFIELD_MUL * C_EMPTY_SIZE) / C_NO_OF_EMPTY_FIELDS;
+    uint64_t EMPTY3         :(C_BITFIELD_MUL * C_EMPTY_SIZE) / C_NO_OF_EMPTY_FIELDS;
+    uint64_t EMPTY4         :(C_BITFIELD_MUL * C_EMPTY_SIZE) / C_NO_OF_EMPTY_FIELDS;
+    uint32_t Subchunk2ID    :C_BITFIELD_MUL * C_SUBCHUNK2ID_SIZE;
+    uint32_t Subchunk2Size  :C_BITFIELD_MUL * C_SUBCHUNK2SIZE_SIZE;
+    std::vector<char> Data;
+
+} WAV_File;
+
+
 
 typedef struct WAV
 {
+    WAV_File header;
+
     std::string path; 
-    WAV_Header header;
-    uint8_t* Data;
-    boost::float32_t * fl_data;
+    std::vector<boost::float32_t> fl_data = {};
+
     int size;
-    boost::float32_t ** frames;
-    int frame_count;
+
 } WAV;
-
-class Audio
-{
-    private:
-        boost::float32_t * float_data;
-        int GetDataSize(std::string Path);
-        uint8_t * GetData(std::string Path, uint8_t * data);
-        std::vector<boost::float32_t *> GetAsFrames();
-        std::vector<Frame> ExtractFrameData();
-        int GetAsInt(char *c, int sz);
-        boost::float32_t * ByteToFloat(uint8_t * bytes, int size);
-        boost::float32_t ** ToFrames(boost::float32_t * bytes, int sz);
-
-    public:
-        WAV audio_wav;
-        boost::float32_t DataAsFloat();
-        WAV GetHeaderFromBytes(std::string path, uint8_t * bytes);
-
-        Audio(std::string Path)
-        {
-        }
-        Audio(std::vector<std::string> Path)
-        {
-        }
-        Audio()
-        {
-            
-        }
-        ~Audio()
-        {
-        }
-
-    friend class AudioSuite;
-};
 
 /*
  * @brief This class defines a bunch of useful functions which can be performed on audio data. 
@@ -115,24 +110,19 @@ class Audio
 class AudioSuite
 {
     public:
-        Audio * audio;
-        std::vector<Audio> files; 
-
         WAV * Load(std::string Path, bool recursive = true);
-        WAV * Load(std::vector<std::string> path, bool recursive = true);
         int CountZeroCrossings(boost::float32_t * signal, int signal_size);
         float CalculatePitch(float * signal, int signal_size, int sample_rate=-1);
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);
-        int NumOfChannels(WAV * wav = nullptr);
-        bool StereoToMono(WAV * wav = nullptr);
-        void FourierTransform(WAV * wav);
+        bool StereoToMono(WAV& wav );
+        void FourierTransform(WAV& wav);
         void Spectrogram(WAV * wav);
-        boost::float32_t GetAmplitude(boost::float32_t * frame);
     private:
-        void Windowing(WAV * wav);
-    
-    friend class audio;
+        std::vector<HannWindow> Windowing(WAV& wav);
+        std::vector<std::vector<boost::float32_t>> GetFrames(WAV& wav);
+
+    friend class Audio;
 };
 
 #endif //  __AUDIO_H__

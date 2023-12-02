@@ -1,12 +1,25 @@
 #include <string>
 #include <map>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/any.hpp>
 
 #ifndef __HELPER_H__
 #define __HELPER_H__
 
 bool IsWavFile(std::string path); 
 bool IsFolder(std::string path) ;
+
+enum Type
+{
+    E_NONE   = 0,
+    E_STRING = 1,
+    E_NUM = 2
+};
+struct CSVHeader 
+{
+    std::string text;
+    Type underlying_type = E_NONE;
+};
 
 class CSVWriter
 {
@@ -27,10 +40,17 @@ class CSVWriter
 
         void Export(std::string filename);
     private:
+        std::vector<CSVHeader> head;
         //std::map<std::string, std::string> FixTypes(std::map<std::string, void *> new_line);
         std::map<std::string, std::vector<std::string>> store; 
-        bool VerifyHeaders(std::map<std::string, std::string>);  
-        std::string CastVoid(void * to_cast);
+        bool VerifyHeaders(std::map<std::string, std::string> data);
+
+        std::vector<CSVHeader> GetAllHeaders() ;
+
+        void SetHeaderType(CSVHeader new_header);
+
+        Type DetermineType(std::pair<std::string, float>);
+        Type DetermineType(std::pair<std::string, std::string> to_check);
 };
 
 #endif // __HELPER_H__

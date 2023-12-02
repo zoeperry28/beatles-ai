@@ -8,6 +8,7 @@
 #include <fstream>
 #include <cassert>
 #include <iostream>
+#include <boost/any.hpp>
 
 bool IsWavFile(std::string path) 
 {
@@ -16,52 +17,80 @@ bool IsWavFile(std::string path)
 
 bool IsFolder(std::string path) 
 {
-    return std::filesystem::path(path).has_extension();
+    return std::filesystem::is_directory(path);
 }
 
-std::string CSVWriter::CastVoid(void * to_cast)
+void CSVWriter::SetHeaderType(CSVHeader new_header)
 {
-    char * x = reinterpret_cast<char *>(&to_cast);
-    return std::string(x);
+    for (int i = 0 ; i < head.size() ; i++)
+    {
+        if (head[i].text == new_header.text)
+        {
+            head[i].underlying_type = new_header.underlying_type;
+        }
+    }
 }
 
-bool IsFloat(float to_check)
+Type GetType(std::string val)
 {
-    bool to_return = false;
+    bool check = true; 
 
-    int to_mod = (int) to_check;
-    if (to_check / to_mod != 1 && to_check != 0)
+    for (const auto& c : val)
     {
-        to_return = true; 
-    }
-    else if (to_check == 0 && to_mod == 0)
-    {
-        to_return = false;
+        if (std::isdigit(c) == false && c != '.')
+        {
+            check = false;
+        }
     }
 
-    return to_return;
+    if (check == true)
+    {
+        return E_NUM;
+    }
+    else
+    {
+        return E_STRING;
+    }
 }
 
-//std::map<std::string, std::string> CSVWriter::FixTypes(std::map<std::string, void *> new_line)
-//{
-//    std::map<std::string, std::string> new_values;
-//    for(std::map<std::string, float>::iterator it = new_line.begin(); it != new_line.end(); ++it) 
-//    {
-//        new_values.insert({it->first, std::to_string(it->second)});
-//    };
-//    return new_values;
-//}
-
+// need to check not only if this header exists, but also whether the data itself is the correct type. 
+// if the type has not been determined yet, this will need to be decided. 
 bool CSVWriter::VerifyHeaders(std::map<std::string, std::string> data)
 {
+    const std::vector<CSVHeader> HEADERS = head;
+
     bool IsValidHeader = true;
-    for(std::map<std::string, std::string>::iterator it = data.begin(); it != data.end(); ++it) 
+    for (int i = 0 ; i < (int)HEADERS.size(); i++)
     {
-        if (store.find(it->first) == store.end())
+        auto v = GetType(data.at(HEADERS[i].text));
+
+        if (data.count(HEADERS[i].text) > 0 && HEADERS[i].underlying_type == E_NONE)
+        {
+            bool val = GetType(HEADERS[i].text);
+            if (val == true)
+            {
+                SetHeaderType({
+                    HEADERS[i].text, 
+                    E_NUM
+                });  
+            }
+            else
+            {
+                SetHeaderType({
+                    HEADERS[i].text, 
+                    E_STRING
+                });
+            }
+        }
+        else if (v != HEADERS[i].underlying_type)
         {
             IsValidHeader = false;
-        } 
+            std::cout<< "[CSV ] [DATA = " << data.at(HEADERS[i].text)  
+                     << "] REJECTED - Please ensure data types are consistent!\n"; 
+        }
     }
+
+
     return IsValidHeader;
 }
 
@@ -71,12 +100,17 @@ void CSVWriter::SetHeader(std::vector<std::string> headers)
     {
         store.clear();
     }
+    
+    std::vector<CSVHeader> ne;
     for (int i = 0 ; i < (int)headers.size(); i++)
     {
-        std::vector<std::string> ne;
-        std::pair<std::string, std::vector<std::string>> v = {headers[i], ne}; 
-        store.insert(v);
+        CSVHeader h;
+        h.text = headers[i];
+        ne.push_back(h);
+        std::vector<std::string> empty = {}; 
+        store.insert({h.text, empty});
     }
+    head = ne;
 }
 
 bool CSVWriter::AddLine(const std::map<std::string, std::string>& new_line)
@@ -101,22 +135,16 @@ bool CSVWriter::AddLine(const std::map<std::string, std::string>& new_line)
     return false;
 }
 
-
 bool CSVWriter::AddLine(const std::map<std::string, float>& new_line)
 {
+    bool out = false;
     std::map<std::string, std::string> to_return;
     for(auto const& imap: new_line)
     {
-        if (IsFloat(imap.second))
-        {
-            to_return.insert({imap.first, std::to_string(imap.second)});
-        }
-        else
-        {
-            to_return.insert({imap.first, std::to_string((int) imap.second)});
-        }
+        to_return.insert({imap.first, std::to_string(imap.second)});
     }
-    return AddLine(to_return);
+    out = AddLine(to_return);
+    return out;
 }
 
 void CSVWriter::Export(std::string filename)
