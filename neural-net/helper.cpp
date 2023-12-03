@@ -10,6 +10,25 @@
 #include <iostream>
 #include <boost/any.hpp>
 
+float StdDev(const std::vector<float>& n) 
+{
+    std::vector<float> final;
+
+    float E = 0;
+    for (int i = 0; i < n.size(); i++) {
+        E += n[i];
+    }
+    float X = E / n.size();
+
+    float v = 0;
+    for (int i = 0; i < n.size(); i++) {
+        v += std::pow((n[i] - X), 2);
+    }
+    v = v / (n.size() - 1);
+
+    return std::sqrt(v);
+}
+
 bool IsWavFile(std::string path) 
 {
     return std::filesystem::path(path).extension() == ".wav";

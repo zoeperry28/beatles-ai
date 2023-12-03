@@ -11,11 +11,25 @@
 #include <iostream>
 #include <typeinfo>
 #include <numbers> // std::numbers
-
+#include <cmath>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/cstdfloat.hpp>
 #include <boost/lexical_cast.hpp>
 #include <fftw3.h>
+#include <iterator>
+#include <vector>
+#include <iterator>
+#include <cmath>
+#include <complex>
+#include <vector>
+#include <boost/cstdint.hpp>
+#include <vector>
+#include <cmath>
+#include <complex>
+#include <iomanip>
+#include <iostream>
+#include <numbers>
+#include "helper.hpp"
 
 // Info on .wav file structure is taken from http://soundfile.sapp.org/doc/WaveFormat/
 
@@ -64,14 +78,55 @@ WAV * AudioSuite::Load(std::string Path = "", bool recursive)
         result->fl_data[i] = static_cast<float>(result->header.Data[i]);
     }
 
+    GetFrames(*result);
+
     Windowing(*result);
 
     FourierTransform(*result);
+
+    std::vector<boost::float32_t> test1 =  FFT_GetMagnitude(*result);
+    std::vector<boost::float32_t> test2 =  FFT_GetPhase(*result);
+
+    float st1 = StdDev(test1);
+    float st2 = StdDev(test2);
 
     return result;
 }
 
 /*********************************************************************************************************************/
+
+std::vector<boost::float32_t>  AudioSuite::FFT_GetMagnitude(WAV& wav)
+{
+    std::vector<boost::float32_t> to_return(wav.fourier.size());
+    if (!wav.fourier.empty())
+    {
+        for (int i = 0; i < wav.fourier.size(); i++)
+        {
+            for (int j = 0; j < wav.fourier[i].size(); j++) 
+            {
+                to_return.push_back(wav.fourier[i][j].mag);
+            }
+        }
+    }
+    return to_return;
+}
+
+
+std::vector<boost::float32_t> AudioSuite::FFT_GetPhase(WAV& wav)
+{
+    std::vector<boost::float32_t> to_return(wav.fourier.size());
+    if (!wav.fourier.empty())
+    {
+        for (int i = 0; i < wav.fourier.size(); i++)
+        {
+            for (int j = 0; j < wav.fourier[i].size(); j++)
+            {
+                to_return.push_back(wav.fourier[i][j].phase);
+            }
+        }
+    }
+    return to_return;
+}
 
 bool AudioSuite::StereoToMono(WAV& wav)
 {
@@ -148,83 +203,103 @@ void AudioSuite::Spectrogram(WAV * wav)
 
 }
 
-void AudioSuite::FourierTransform(WAV& wav)
-{
-    // Define the size of the input sequence
-    int N = wav.size;
+void AudioSuite::GetFrames(WAV& wav) {
+    std::vector<std::vector<boost::float32_t> > to_return;
 
-    // Create input and output arrays
-    float* out = static_cast<float*>(malloc(N * sizeof(float)));
-    if (!out) {
-        std::cerr << "Memory allocation failed for out array." << std::endl;
-        return;
-    }
+    for (int i = 0; i < wav.fl_data.size(); i += C_HANN_WINDOW_SIZE_L) {
 
-    float* in = static_cast<float*>(malloc(N * sizeof(float)));
-    if (!in) {
-        std::cerr << "Memory allocation failed for in array." << std::endl;
-        free(out);  // Free previously allocated memory
-        return;
-    }
+        std::vector<boost::float32_t> all;
 
-    std::copy(wav.windows.begin(), wav.windows.end(), in);
-
-    // Create a FFTW plan
-    fftw_complex* fftw_in = reinterpret_cast<fftw_complex*>(in);
-    fftw_complex* fftw_out = reinterpret_cast<fftw_complex*>(out);
-
-    fftw_plan plan = fftw_plan_dft_1d(N, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
-
-    if (!plan) {
-        std::cerr << "FFTW plan creation failed." << std::endl;
-        free(in);   // Free allocated memory
-        free(out);
-        return;
-    }
-
-    // Execute the plan to compute the Fourier transform
-    fftw_execute(plan);
-
-    // Clean up
-    fftw_destroy_plan(plan);
-    free(in);
-    free(out);
-}
-
-
-/////////////////////////
-
-std::vector<std::vector<boost::float32_t>> AudioSuite::GetFrames(WAV &wav)
-{
-    std::vector<std::vector<boost::float32_t>> to_return;
-    std::vector<boost::float32_t> current; 
-
-    int frame_size = wav.header.SampleRate - 1;
-
-    for (int count = 0; count < wav.fl_data.size(); count++)
-    {
-        if (count % frame_size == 0)
+        int sz = C_HANN_WINDOW_SIZE_L;
+        if (i != 0)
         {
-            to_return.push_back(current);
-            current = {};
+            sz = C_HANN_WINDOW_SIZE_L + 2;
         }
-        current.push_back(wav.fl_data[count]);
+
+        for (int j = i; j < i + sz; j++)
+        {
+            all.push_back(wav.fl_data[i]);
+        }
+
+        to_return.push_back(all);
     }
-    return to_return;
+    wav.frames = to_return;
 }
 
 void AudioSuite::Windowing(WAV& wav)
 {
-    std::cout << "Data size: " << wav.size << std::endl;
+    std::vector<std::vector<boost::float32_t>> final(wav.frames.size());
 
-    wav.windows.clear();
-
-    std::vector<float> all(wav.size);
-
-    for (int n = 0; n < wav.size; ++n)
+    for (int i = 0; i < wav.frames.size(); i++)
     {
-        all[n] = 0.5f * (1 - std::cos((2 * std::numbers::pi * wav.fl_data[n]) / C_HANN_WINDOW_SIZE_L));
+        std::vector<boost::float32_t> all(wav.frames[i].size());
+        for (int j = 0; j < wav.frames[i].size(); j++)
+        {
+            all[j] = 0.5f * (1 - std::cos((2 * std::numbers::pi * wav.frames[i][j]) / wav.frames[i].size()));
+        }
+        final[i] = all;
+    }
+    wav.windows = final;
+    wav.frames.clear();
+}
+
+void AudioSuite::FourierTransform(WAV& wav) {
+    std::vector<std::vector<FourierOut>> final;
+    for (int i = 0; i < wav.windows.size(); i++) 
+    {
+        std::vector<std::complex<boost::float32_t>> result = FastFourierTransform(wav.windows[i]);
+
+        std::vector<FourierOut> a;
+        for (std::size_t j = 0; j < result.size(); ++j) 
+        {
+            FourierOut Out = {
+                result[j],
+                std::abs(result[j]),
+                std::arg(result[j])
+            };
+            a.push_back(Out);
+        }
+        final.push_back(a);
+    }
+    wav.fourier = final;
+}
+
+std::vector<std::complex<boost::float32_t>> AudioSuite::FastFourierTransform(std::vector<boost::float32_t>& to_check) {
+
+    std::vector<std::complex<boost::float32_t>> complex_data(to_check.begin(), to_check.end());
+
+    FFT(complex_data);
+
+    return complex_data;
+}
+
+void AudioSuite::FFT(std::vector<std::complex<boost::float32_t>>& data) 
+{
+    const std::size_t N = data.size();
+
+    if (N <= 1) 
+    {
+        return;
     }
 
-    wav.windows = all;
+    std::vector<std::complex<boost::float32_t>> even(N / 2);
+    std::vector<std::complex<boost::float32_t>> odd(N / 2);
+
+    for (std::size_t i = 0; i < N / 2; ++i) 
+    {
+        even[i] = data[2 * i];
+        odd[i] = data[2 * i + 1];
+    }
+
+    FFT(even);
+    FFT(odd);
+
+    for (std::size_t i = 0; i < N / 2; ++i)
+    {
+        std::complex<boost::float32_t> t(std::cos(-2.0f * std::numbers::pi * i / N),
+            std::sin(-2.0f * std::numbers::pi * i / N));
+        std::complex<boost::float32_t> temp = t * odd[i];
+        data[i] = even[i] + temp;
+        data[i + N / 2] = even[i] - temp;
+    }
 }

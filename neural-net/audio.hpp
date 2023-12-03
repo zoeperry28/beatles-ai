@@ -62,6 +62,14 @@ typedef struct Frame
 
 } Frame;
 
+typedef struct FourierOut
+{
+    std::complex<float> freq;
+    int mag;
+    int phase;
+
+}FourierOut;
+
 typedef struct WAV_File {
     uint32_t ChunkID        :C_BITFIELD_MUL * C_CHUNKID_SIZE;
     uint32_t ChunkSize      :C_BITFIELD_MUL * C_CHUNKSIZE_SIZE;
@@ -93,7 +101,9 @@ typedef struct WAV
 
     std::string path; 
     std::vector<float> fl_data;
-    std::vector<float> windows; 
+    std::vector<std::vector<boost::float32_t>> frames;
+    std::vector<std::vector<boost::float32_t>> windows;
+    std::vector<std::vector<FourierOut>> fourier;
 
     int size;
 
@@ -116,9 +126,12 @@ class AudioSuite
         void FourierTransform(WAV& wav);
         void Spectrogram(WAV * wav);
     private:
-        std::vector<std::vector<boost::float32_t>> GetFrames(WAV& wav);
+        void GetFrames(WAV& wav);
+        void FFT(std::vector<std::complex<boost::float32_t>>& data);
+        std::vector<std::complex<boost::float32_t>> FastFourierTransform(std::vector<boost::float32_t>& to_check);
+        std::vector<boost::float32_t> FFT_GetMagnitude(WAV& wav);
+        std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
 
-    friend class Audio;
 };
 
 #endif //  __AUDIO_H__

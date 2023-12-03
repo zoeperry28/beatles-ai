@@ -2,12 +2,13 @@
 #include <map>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/any.hpp>
-
+#include <vector>
 #ifndef __HELPER_H__
 #define __HELPER_H__
 
 bool IsWavFile(std::string path); 
 bool IsFolder(std::string path) ;
+float StdDev(const std::vector<float>& n);
 
 enum Type
 {
