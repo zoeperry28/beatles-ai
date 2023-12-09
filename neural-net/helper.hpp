@@ -1,6 +1,7 @@
-#include <string>
+﻿#include <string>
 #include <map>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/cstdfloat.hpp>
 #include <boost/any.hpp>
 #include <vector>
 #ifndef __HELPER_H__
@@ -15,22 +16,29 @@ class LoadingBar
 public:
 
     float Percent = 0;
-    float Incr = 0;
-    int Items = 0;
+    long double Incr = 0;
+    long double Items = 0;
     int Counted = 0;
     int Scale = 1;
-    LoadingBar(int NoOfItems, int scale=1)
+    std::string Title = "";
+    std::string subtext = "";
+    LoadingBar(std::string title, int NoOfItems, int scale=1)
     {
         Items = NoOfItems;
         Scale = scale;
         CalculateIncr();
+        WriteTitle(title);
     }
     ~LoadingBar()
     {
-
+        printf("\n");
     }
 
-    void Write(int MaxSize = -1)
+    void WriteHeader()
+    {
+        printf("%s\n", Title.c_str());
+    }
+    void WriteBar(int MaxSize = -1)
     {
         if (MaxSize == -1)
         {
@@ -43,26 +51,33 @@ public:
         {
             if (i < to_populate)
             {
-                out = out + "x";
+                out = out + "|";
             }
             else
             {
                 out = out + " ";
             }
         }
-        printf("\r\t[%s] %f%", out.c_str(), Percent);
+        printf("\r[%s] %d %s", out.c_str(), (int)Percent, "% ");
     }
 
     void LogProgress1()
     {
         Percent = Percent + Incr;
         Counted++;
+        WriteBar();
     }
 
     void LogProgressMultiple(int Amount)
     {
         Percent = Percent + (Incr * Amount);
         Counted += Amount;
+    }
+
+    void WriteTitle(std::string s)
+    {
+        Title = s;
+        WriteHeader();
     }
 
 private:
