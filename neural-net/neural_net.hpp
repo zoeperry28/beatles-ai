@@ -33,16 +33,20 @@ typedef struct NEURAL_NET_Params
 
 const std::vector<std::string> HEADERS =
 {
-    "FRAMES",
+    "FILE",
     "ZERO_CROSSINGS",
-    "PITCH"
+    "PITCH",
+    "STD_MAGNITUDE",
+    "STD_PHASE"
 };
 
 typedef struct NN_Audio_Parameters
 {
-    boost::float32_t * frames; 
+    WAV& wav;
     int ZeroCrossingCount; 
     boost::float32_t Pitch;
+    boost::float32_t Magnitude;
+    boost::float32_t Phase;
 
 } NN_Audio_Parameters;
 
@@ -73,8 +77,8 @@ class Prime_Data
         { 
             AS = &audio;
         }
-        NN_Audio_Parameters * PrepareAudioData(std::vector<WAV *>& wav);
-        void Write_Data(std::string filename, std::vector<NN_Audio_Parameters>& AP);
+        NN_Audio_Parameters ** PrepareAudioData(std::vector<WAV>& wav, int NoOfFiles);
+        void Write_Data(std::string filename, NN_Audio_Parameters** AP, int NoOfEntries);
 
     friend class Audio;
     friend class Neural_Net_Modes;
@@ -103,7 +107,7 @@ class Neural_Net
 class Neural_Net_Modes : AudioSuite
 {
     private: 
-        static std::vector<WAV*> Get_Wavs(std::vector<std::string>& files);
+        static std::vector<WAV> Get_Wavs(std::vector<std::string>& files);
     public:
         static Neural_Net_Mode ParseArgs(const std::string& MODE);
         static bool Data_Gathering(std::vector<std::string>& files);

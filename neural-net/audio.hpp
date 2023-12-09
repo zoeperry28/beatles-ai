@@ -14,7 +14,7 @@
 #define C_UNIQUE_PITCHES (12)
 #define C_MIDI_INDEX_ADJUST (21)
 #define C_MB_TO_BYTES (1e+6)
-#define C_HANN_WINDOW_SIZE_L (10)
+#define C_HANN_WINDOW_SIZE_L (512)
 // WAV Header Sizes
 #define C_CHUNKID_SIZE       (4U)
 #define C_CHUNKSIZE_SIZE     (4U)
@@ -97,6 +97,7 @@ typedef struct WAV_File {
 
 typedef struct WAV
 {
+    std::string filename;
     WAV_File header;
 
     std::string path; 
@@ -115,22 +116,23 @@ typedef struct WAV
 class AudioSuite
 {
     public:
-        WAV * Load(std::string Path, bool recursive = true);
-        int CountZeroCrossings(boost::float32_t * signal, int signal_size);
-        float CalculatePitch(float * signal, int signal_size, int sample_rate=-1);
+        WAV Load(std::string Path, bool recursive = true);
+        int CountZeroCrossings(WAV &wav);
+        float CalculatePitch(WAV &wav);
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);
         bool StereoToMono(WAV& wav );
 
-        void Windowing(WAV& wav);
         void FourierTransform(WAV& wav);
-        void Spectrogram(WAV * wav);
+        void Spectrogram(WAV * wav);        
+        std::vector<boost::float32_t> FFT_GetMagnitude(WAV& wav);
+        std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
     private:
+        void Windowing(WAV& wav);
         void GetFrames(WAV& wav);
         void FFT(std::vector<std::complex<boost::float32_t>>& data);
         std::vector<std::complex<boost::float32_t>> FastFourierTransform(std::vector<boost::float32_t>& to_check);
-        std::vector<boost::float32_t> FFT_GetMagnitude(WAV& wav);
-        std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
+
 
 };
 

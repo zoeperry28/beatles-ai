@@ -39,7 +39,7 @@
 *  @param  Path the path of the audio file to be loaded.
 *  @return whether the file was read or not. 
 */
-WAV * AudioSuite::Load(std::string Path = "", bool recursive)
+WAV AudioSuite::Load(std::string Path = "", bool recursive)
 {
     std::ifstream input(Path, std::ios::binary);
 
@@ -50,10 +50,11 @@ WAV * AudioSuite::Load(std::string Path = "", bool recursive)
     input.close();
 
     WAV* result = new WAV;
+    result->filename = Path;
 
     if (bytes.size() < sizeof(WAV))
     {
-        return nullptr;
+        return *result;
     }
     WAV* wav = reinterpret_cast<WAV*>(bytes.data());
     result = std::move(wav);
@@ -82,49 +83,40 @@ WAV * AudioSuite::Load(std::string Path = "", bool recursive)
 
     Windowing(*result);
 
-    FourierTransform(*result);
-
-    std::vector<boost::float32_t> test1 =  FFT_GetMagnitude(*result);
-    std::vector<boost::float32_t> test2 =  FFT_GetPhase(*result);
-
-    float st1 = StdDev(test1);
-    float st2 = StdDev(test2);
-
-    return result;
+    return *result;
 }
 
 /*********************************************************************************************************************/
 
-std::vector<boost::float32_t>  AudioSuite::FFT_GetMagnitude(WAV& wav)
+std::vector<boost::float32_t> AudioSuite::FFT_GetMagnitude(WAV& wav)
 {
-    std::vector<boost::float32_t> to_return(wav.fourier.size());
-    if (!wav.fourier.empty())
+    std::vector<boost::float32_t> to_return;
+    to_return.reserve(wav.fourier.size() * wav.fourier[0].size()); // Reserve space for better performance
+
+    for (const auto& row : wav.fourier)
     {
-        for (int i = 0; i < wav.fourier.size(); i++)
+        for (const auto& entry : row)
         {
-            for (int j = 0; j < wav.fourier[i].size(); j++) 
-            {
-                to_return.push_back(wav.fourier[i][j].mag);
-            }
+            to_return.push_back(entry.mag);
         }
     }
+
     return to_return;
 }
 
-
 std::vector<boost::float32_t> AudioSuite::FFT_GetPhase(WAV& wav)
 {
-    std::vector<boost::float32_t> to_return(wav.fourier.size());
-    if (!wav.fourier.empty())
+    std::vector<boost::float32_t> to_return;
+    to_return.reserve(wav.fourier.size() * wav.fourier[0].size()); // Reserve space for better performance
+
+    for (const auto& row : wav.fourier)
     {
-        for (int i = 0; i < wav.fourier.size(); i++)
+        for (const auto& entry : row)
         {
-            for (int j = 0; j < wav.fourier[i].size(); j++)
-            {
-                to_return.push_back(wav.fourier[i][j].phase);
-            }
+            to_return.push_back(entry.phase);
         }
     }
+
     return to_return;
 }
 
@@ -158,14 +150,14 @@ bool AudioSuite::StereoToMono(WAV& wav)
     return res;
 }
 
-int AudioSuite::CountZeroCrossings(boost::float32_t * signal, int signal_size)
+int AudioSuite::CountZeroCrossings(WAV& wav)
 {
     int crossings = 0;
 
-    for (int i = 1; i < signal_size; ++i) 
+    for (int i = 1; i < wav.size; ++i)
     {
-        if ((signal[i] >= 0 && signal[i - 1] < 0) || 
-            (signal[i] < 0 && signal[i - 1] >= 0)) 
+        if ((wav.fl_data[i] >= 0 && wav.fl_data[i - 1] < 0) ||
+            (wav.fl_data[i] < 0 && wav.fl_data[i - 1] >= 0))
         {
             crossings++;
         }
@@ -173,16 +165,16 @@ int AudioSuite::CountZeroCrossings(boost::float32_t * signal, int signal_size)
     return crossings;
 }
 
-float AudioSuite::CalculatePitch(float * signal, int signal_size, int sample_rate)
+float AudioSuite::CalculatePitch(WAV &wav)
 {
     float to_return = 0.0;
-    int zero_crossings = CountZeroCrossings(signal, signal_size);
+    int zero_crossings = CountZeroCrossings(wav);
 
     if (zero_crossings == 0) 
     {
         to_return = 0.0f;
     }
-    to_return = sample_rate / (2.0f * zero_crossings);
+    to_return = wav.header.SampleRate / (2.0f * zero_crossings);
     return to_return;
 }
 

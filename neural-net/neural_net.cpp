@@ -28,7 +28,7 @@
 //
 //}
 
-void Prime_Data::Write_Data(std::string filename, std::vector<NN_Audio_Parameters>& AP)
+void Prime_Data::Write_Data(std::string filename, NN_Audio_Parameters ** AP, int NoOfEntries)
 {
     std::string to_return = "";
     for (int heading = 0; heading < HEADERS.size(); heading++)
@@ -42,16 +42,37 @@ void Prime_Data::Write_Data(std::string filename, std::vector<NN_Audio_Parameter
             to_return = to_return + HEADERS[heading] + "\n";
         }
     }
+
+    for (int entry = 0; entry < NoOfEntries; entry++)
+    {
+        to_return = to_return + std::to_string(AP[entry]->ZeroCrossingCount) + "," +
+                                std::to_string(AP[entry]->Pitch) + "," +
+                                std::to_string(AP[entry]->Magnitude) + "," +
+                                std::to_string(AP[entry]->Phase) + "\n";
+    }
+
+
+
+    //Now, the string is ready!
+    std::cout << to_return;
 }
 
-NN_Audio_Parameters* Prime_Data::PrepareAudioData(std::vector<WAV *>& wav)
+NN_Audio_Parameters** Prime_Data::PrepareAudioData(std::vector<WAV>& wav, int NoOfFiles)
 {
-    NN_Audio_Parameters * A_Audio_Parameters = nullptr;
+    NN_Audio_Parameters ** A_Audio_Parameters;
+    A_Audio_Parameters = (NN_Audio_Parameters**)malloc(NoOfFiles);
     for (int i = 0; i < wav.size(); i++)
     {
-        WAV Current_WAV = *wav[i];
+        AS->FourierTransform(wav[i]);
 
-
+        NN_Audio_Parameters AP = {
+            .wav               = wav[i],
+            .ZeroCrossingCount = AS->CountZeroCrossings(wav[i]),
+            .Pitch             = AS->CalculatePitch(wav[i]),
+            .Magnitude         = StdDev(AS->FFT_GetMagnitude(wav[i])),
+            .Phase             = StdDev(AS->FFT_GetPhase(wav[i])),
+        };
+        A_Audio_Parameters[i] = &AP;
     }
     return A_Audio_Parameters;
 }
@@ -88,25 +109,27 @@ Neural_Net_Mode Neural_Net_Modes::ParseArgs(const std::string& MODE)
     }
     return to_return;
 }
-
-std::vector<WAV*> Neural_Net_Modes::Get_Wavs(std::vector<std::string>& files)
+std::vector<WAV> Neural_Net_Modes::Get_Wavs(std::vector<std::string>& files)
 {
-    std::vector<WAV*>wavs = {};
+    std::vector<WAV> wavs;  // Initialize an empty vector
+
     AudioSuite AS;
     Prime_Data PD;
 
-    for (int i = 0; i < files.size(); i++)
+    for (const auto& folder : files)
     {
-        for (const auto& entry : std::filesystem::directory_iterator(files[i]))
+        for (const auto& entry : std::filesystem::directory_iterator(folder))
         {
             std::cout << entry << std::endl;
             std::string to_add = entry.path().string();
             if (to_add != "" && IsWavFile(to_add))
             {
-                wavs.push_back(AS.Load(to_add, true));
+                WAV w = AS.Load(to_add, true);
+                wavs.push_back(w);
             }
         }
     }
+
     return wavs;
 }
 
@@ -126,13 +149,12 @@ bool Neural_Net_Modes::Data_Gathering(std::vector<std::string>& files)
     Prime_Data PD;
     //std::vector<std::vector<HannWindow>> HannWindows;
 
-    std::vector<WAV*>wavs = Get_Wavs(files);
-    for (int i = 0; i < wavs.size(); i++)
-    {
-        //HannWindows.push_back(AS.Windowing(*wavs[i]));
-    }
-    PD.PrepareAudioData(wavs);
+    std::vector<WAV>wavs = Get_Wavs(files);
     
+    NN_Audio_Parameters** Data = PD.PrepareAudioData(wavs, wavs.size());
+
+    PD.Write_Data("test", Data, files.size());
+
     return false;
 }
 

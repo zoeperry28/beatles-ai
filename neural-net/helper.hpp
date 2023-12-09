@@ -10,6 +10,69 @@ bool IsWavFile(std::string path);
 bool IsFolder(std::string path) ;
 float StdDev(const std::vector<float>& n);
 
+class LoadingBar
+{
+public:
+
+    float Percent = 0;
+    float Incr = 0;
+    int Items = 0;
+    int Counted = 0;
+    int Scale = 1;
+    LoadingBar(int NoOfItems, int scale=1)
+    {
+        Items = NoOfItems;
+        Scale = scale;
+        CalculateIncr();
+    }
+    ~LoadingBar()
+    {
+
+    }
+
+    void Write(int MaxSize = -1)
+    {
+        if (MaxSize == -1)
+        {
+            MaxSize = Items;
+        }
+        std::string out;
+
+        int to_populate = (int)Percent / Scale;
+        for (int i = 0; i < 100 / Scale; i++)
+        {
+            if (i < to_populate)
+            {
+                out = out + "x";
+            }
+            else
+            {
+                out = out + " ";
+            }
+        }
+        printf("\r\t[%s] %f%", out.c_str(), Percent);
+    }
+
+    void LogProgress1()
+    {
+        Percent = Percent + Incr;
+        Counted++;
+    }
+
+    void LogProgressMultiple(int Amount)
+    {
+        Percent = Percent + (Incr * Amount);
+        Counted += Amount;
+    }
+
+private:
+    void CalculateIncr()
+    {
+        Incr = 100 / Items;
+    }
+};
+
+
 enum Type
 {
     E_NONE   = 0,

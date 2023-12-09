@@ -6,8 +6,11 @@
 #include <vector>
 #include <iostream>
 #include <cctype>
+#include<windows.h> 
+
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include "helper.hpp"
 int main(int argc, char* argv[])
 {
 	AudioSuite AudioReader;
@@ -15,14 +18,14 @@ int main(int argc, char* argv[])
 	std::vector<std::string> file_names; 
 	std::string MODE = "";
 	std::string FILE = "";
-
+	
 	if (argc > 3)
 	{
 		MODE = std::string(argv[1]);
 		std::transform(MODE.begin(), MODE.end(), MODE.begin(), ::tolower);
 		FILE = std::string(argv[2]);
 		std::transform(FILE.begin(), FILE.end(), FILE.begin(), ::tolower);
-
+	
 		for (int i = 3; i < argc; i++)
 		{
 			file_names.push_back(argv[i]);
@@ -32,7 +35,7 @@ int main(int argc, char* argv[])
 	{
 		std::cerr << "Insufficient Arguments!\n";
 	}
-
+	
 	switch (Neural_Net_Modes::ParseArgs(MODE))
 	{
 		case E_DATA_GATHERING:
