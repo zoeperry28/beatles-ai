@@ -19,5 +19,4 @@ Layer::~Layer()
 }
 
 
-
 #endif // !__LAYER_H__
