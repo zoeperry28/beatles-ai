@@ -242,13 +242,14 @@ void AudioSuite::FourierTransform(WAV& wav, LoadingBar * LB) {
         Loading = true;
     }
 
-    LoadingBar L("Fourier Transform", wav.windows.size());
+    LoadingBar L(("Processing: " + wav.filename), wav.windows.size());
     std::vector<std::vector<FourierOut>> final;
 
     for (int i = 0; i < wav.windows.size(); i++) 
     {
+        std::vector<std::vector<boost::float32_t>> result2(wav.windows[i].begin(), wav.windows[i].end());
         std::vector<std::complex<boost::float32_t>> result(wav.windows[i].begin(), wav.windows[i].end());
-        FFT(result);
+        FFT(result2);
 
         std::vector<FourierOut> a;
         for (std::size_t j = 0; j < result.size(); ++j) 
@@ -267,33 +268,227 @@ void AudioSuite::FourierTransform(WAV& wav, LoadingBar * LB) {
     wav.fourier = final;
 }
 
-void AudioSuite::FFT(std::vector<std::complex<boost::float32_t>>& data) 
+void AudioSuite::FFT(std::vector<std::vector<boost::float32_t>>& data)
 {
     const std::size_t N = data.size();
 
-    if (N <= 1) 
+    // Base case: if the size of the data is 1 or 0, no processing is needed
+    if (N <= 1)
     {
         return;
     }
 
-    std::vector<std::complex<boost::float32_t>> even(N / 2);
-    std::vector<std::complex<boost::float32_t>> odd(N / 2);
+    // Divide the data into even and odd parts
+    std::vector<std::vector<boost::float32_t>> even(N / 2);
+    std::vector<std::vector<boost::float32_t>> odd(N / 2);
 
-    for (std::size_t i = 0; i < N / 2; ++i) 
+    for (std::size_t i = 0; i < N / 2; ++i)
     {
         even[i] = data[2 * i];
         odd[i] = data[2 * i + 1];
     }
 
+    // Recursive FFT on even and odd parts
     FFT(even);
     FFT(odd);
 
+    // Combine the results of FFT on even and odd parts
     for (std::size_t i = 0; i < N / 2; ++i)
     {
-        std::complex<boost::float32_t> t(std::cos(-2.0f * std::numbers::pi * i / N),
-            std::sin(-2.0f * std::numbers::pi * i / N));
-        std::complex<boost::float32_t> temp = t * odd[i];
-        data[i] = even[i] + temp;
-        data[i + N / 2] = even[i] - temp;
+        // Twiddle factor to perform complex multiplication
+        boost::float32_t angle = -2.0f * std::numbers::pi * i / N;
+        std::complex<boost::float32_t> twiddle(std::cos(angle), std::sin(angle));
+
+        // Multiply odd part by twiddle factor
+        for (std::size_t j = 0; j < data[i].size(); ++j)
+        {
+            std::complex<boost::float32_t> temp = twiddle * odd[i][j];
+
+            // Combine results
+            data[i][j] = even[i][j] + temp.real();  // Use real() to get the real part
+            data[i + N / 2][j] = even[i][j] - temp.real();
+        }
     }
+}
+
+
+boost::float32_t AudioSuite::MelScale(boost::float32_t f)
+{
+    return 1125 * std::log(1 + f / 700);
+}
+
+boost::float32_t AudioSuite::MelToFreq(boost::float32_t mel)
+{
+    return 700 * (std::exp(mel / 1125) - 1);
+}
+
+std::vector<boost::float32_t> AudioSuite::MelToFreq(const std::vector<float>& mel)
+{
+    std::vector<boost::float32_t> to_return(mel.size());
+    std::transform(mel.begin(), mel.end(), to_return.begin(), [](float mel_value) {
+        return 700 * (std::exp(mel_value / 1125) - 1);
+        });
+    return to_return;
+}
+
+std::vector<boost::float32_t> AudioSuite::PointFloor(int FFTSize, std::vector<boost::float32_t> freq_points, int SampleRate)
+{
+    std::vector<boost::float32_t> to_return(freq_points.size());
+    for (int i = 0; i < freq_points.size(); i++)
+    {
+        to_return[i] = std::floor((FFTSize + 1) * freq_points[i] / SampleRate);
+    }
+    return to_return;
+}
+
+void MFB_CalcForPoints(std::vector<float>& all_points, const std::vector<float>& bin_points, int m)
+{
+    auto bin_begin = bin_points.begin();
+    auto bin_end = bin_points.end();
+    std::transform(all_points.begin(), all_points.end(), all_points.begin(),
+        [bin_begin, m](float point) {
+            return point - *std::prev(bin_begin, m) / (*bin_begin - *std::prev(bin_begin, m));
+        });
+}
+
+void MFB_CalcForPoints2(std::vector<float>& all_points, const std::vector<float>& bin_points, int m)
+{
+    auto bin_begin = bin_points.begin();
+    auto bin_end = bin_points.end();
+    std::transform(all_points.begin(), all_points.end(), all_points.begin(),
+        [bin_begin, m](float point) {
+            return (point - *bin_begin) / (*std::next(bin_begin, m + 1) - *bin_begin);
+        });
+}
+
+std::vector<std::vector<boost::float32_t>> AudioSuite::MelFilterBank(int numFilters, int fftSize, int sampleRate) {
+    const int lowFreq = 0;
+    const int highFreq = sampleRate / 2;
+
+    const boost::float32_t melLow = MelScale(lowFreq);
+    const boost::float32_t melHigh = MelScale(highFreq);
+
+    const std::vector<float> melPoints = LinSpace(melLow, melHigh, numFilters + 2);
+    const std::vector<boost::float32_t> freqPoints = MelToFreq(melPoints);
+    const std::vector<boost::float32_t> binPoints = PointFloor(fftSize, freqPoints, sampleRate);
+
+    std::vector<std::vector<float>> filters;
+
+    for (int m = 1; m <= numFilters; m++) {
+        std::vector<float> filterM = Zeros(fftSize / 2 + 1);
+
+        AddAtIndex(filterM, Arrange(binPoints[m - 1], binPoints[m] + 1, 1), m - 1, m);
+        MFB_CalcForPoints(filterM, binPoints, m);
+
+        AddAtIndex(filterM, Arrange(binPoints[m - 1], binPoints[m] + 1, 1), m, m + 1);
+        MFB_CalcForPoints2(filterM, binPoints, m);
+
+        filters.push_back(filterM);
+    }
+
+    return filters;
+}
+
+std::vector<std::vector<boost::float32_t>> AudioSuite::LogCompress(std::vector<std::vector<boost::float32_t>>& f)
+{
+    std::vector<std::vector<boost::float32_t>> G;
+    for (std::vector<boost::float32_t>& row : f) 
+    {
+        std::vector<boost::float32_t> h(row.size());
+        for (boost::float32_t& value : row) 
+        {
+            value = std::log(value);
+            h.push_back(value);
+        }
+        G.push_back(h);
+    }
+    return G;
+}
+
+void AudioSuite::PreEmphasis(std::vector<boost::float32_t> & data)
+{
+    for (int i = 1; i < data.size(); i++)
+    {
+        data[i] = data[i] - (C_PREMPHASIS_COEFF * data[i - 1]);
+    }
+}
+
+boost::float32_t AudioSuite::DiscreteCosTransform_Norm(int m, int M)
+{
+    boost::float32_t to_return = 0;
+    if (m == 0)
+    {
+        to_return = std::sqrt(2 / M);
+    }
+    else if (m > 0)
+    {
+        to_return = std::sqrt(2 / M)* std::cos((std::numbers::pi * m) / M);
+    }
+    return to_return;
+}
+
+std::vector<std::vector<float>> AudioSuite::DiscreteCosTransform(std::vector<std::vector<boost::float32_t>>& C, int M)
+{
+    std::vector<std::vector<float>> X(M);
+    for (int m = 0; m < M; m++)
+    {
+        std::vector<float> Y(C[m].size());
+        for (int x = 0; x < C[m].size(); x++)
+        {
+            Y[x] = DiscreteCosTransform_Norm(m, M)* (M - 1)* C[m][x] * std::cos((std::numbers::pi * ((2 * m) + 1) * m) / 2 * M);
+        }
+        X[m] = Y;
+    }
+    return X;
+} 
+
+std::vector<std::vector<boost::float32_t>> AudioSuite::TriangularFilter()
+{
+
+}
+
+std::vector<std::vector<boost::float32_t>> AudioSuite::TriangularFilterBank(int numFilters, int fftSize, int sampleRate)
+{
+
+}
+
+std::vector<boost::float32_t> AudioSuite::ApplyTriangularFilterBank(const std::vector<boost::float32_t>& spectrum, const std::vector<std::vector<boost::float32_t>>& filterBank)
+{
+}
+
+void AudioSuite::MFCC(WAV& wav)
+{
+    // Preprocess the audio data
+    PreEmphasis(wav.fl_data);
+    GetFrames(wav);
+
+    // Apply windowing to each frame
+    Windowing(wav);
+
+    // Apply FFT to windowed frames
+    FFT(wav.windows);
+
+    // Mel filter bank calculation
+    std::vector<std::vector<boost::float32_t>> melFilterBank = MelFilterBank(20, 10, wav.header.SampleRate);
+
+
+    // Create triangular filter bank
+    std::vector<std::vector<boost::float32_t>> triangularFilterBank = TriangularFilterBank(20, 10, wav.header.SampleRate);
+
+    // Apply triangular filter bank to the magnitude spectrum
+    std::vector<std::vector<boost::float32_t>> filterBankOutput;
+    for (const auto& spectrum : wav.windows)
+    {
+        filterBankOutput.push_back(ApplyTriangularFilterBank(spectrum, triangularFilterBank));
+    }
+
+    // Log-compress the filter bank energies
+    std::vector<std::vector<boost::float32_t>> logCompressed = LogCompress(melFilterBank);
+
+    // Discrete cosine transform
+    std::vector<std::vector<float>> mfccResult = DiscreteCosTransform(logCompressed, melFilterBank.size());
+
+    // The result 'mfccResult' contains the MFCC coefficients for each frame
+    // Depending on your application, you may want to use or store these coefficients
+    std::cout << "done!\n";
 }

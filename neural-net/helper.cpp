@@ -8,10 +8,10 @@
 #include <fstream>
 #include <cassert>
 #include <iostream>
+#include <cmath>
+#include <iostream>
+#include <cstdlib>
 #include <boost/any.hpp>
-
-
-
 
 float StdDev(const std::vector<float>& n) 
 {
@@ -37,9 +37,83 @@ bool IsWavFile(std::string path)
     return std::filesystem::path(path).extension() == ".wav";
 }
 
+bool IsCSVFile(std::string path)
+{
+    return std::filesystem::path(path).extension() == ".csv";
+}
+
 bool IsFolder(std::string path) 
 {
     return std::filesystem::is_directory(path);
+}
+
+std::vector<float> LinSpace(float start, float stop, int num)
+{
+    std::vector<float> to_return(num);
+    int spacer = (stop - start) / num; 
+    for (float i = start; i <= stop; i += spacer)
+    {
+        to_return.push_back(i);
+    }
+    return to_return;
+}
+
+std::vector<float> Zeros(int ind)
+{
+    std::vector<float> to_return(ind);
+    for (int i = 0; i < ind; i++)
+    {
+        to_return[i] = 0;
+    }
+    return to_return;
+}
+
+std::vector<float> Arrange(int start, int stop, int step)
+{
+    std::vector<float> to_return;
+    for (int i = start; i < stop; step++)
+    {
+        to_return.push_back(i);
+    }
+    return to_return;
+}
+
+std::vector<float> AddAtIndex(std::vector<float> data, std::vector<float> to_add, int start, int end)
+{
+    int inc = 0;
+    for (int i = start; i < end; i++, inc++)
+    {
+        data[i] = to_add[inc];
+    }
+    return data;
+}
+
+std::vector<std::string> SplitByDelimiter(std::string to_check, std::string delim)
+{
+    std::vector<std::string> ok;
+    std::vector<int> all;
+    int found = 0;
+    std::string cur = to_check;
+    int discarded = 0;
+    all.push_back(0);
+
+    while (found != -1)
+    {
+        found = cur.find(delim);
+        if (found != -1)
+        {
+            discarded = discarded + found + 1;
+            cur = cur.substr(found + 1, cur.size());
+            all.push_back(discarded);
+        }
+    }
+    all.push_back(to_check.size());
+
+    for (int i = 0; i < all.size()-1; i++)
+    {
+        ok.push_back(std::string(&to_check[all[i]], &to_check[all[i + 1]-1]));
+    }
+    return ok;
 }
 
 void CSVWriter::SetHeaderType(CSVHeader new_header)

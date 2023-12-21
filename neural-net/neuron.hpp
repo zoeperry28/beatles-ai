@@ -1,6 +1,7 @@
 #ifndef __NEURON_H__
 #define __NEURON_H__
 
+#include "neural_net.hpp"
 #include <boost/math/constants/constants.hpp>
 
 namespace Activation {
@@ -35,43 +36,78 @@ namespace Activation {
     }
 } 
 
-typedef enum Neuron_Type
-{
-    E_INPUT = 0,
-    E_HIDDEN = 1, 
-    E_OUTPUT = 2,
-}Neuron_Type;
-
 class Neuron
 {
 private:
     int input = 0;
     int weight = 0;
     int bias = 0;
-    int threshold;
+    int threshold = 0;
 public:
-    Neuron(Neuron_Type);
-    ~Neuron();
+    Neuron()
+    {
+
+    }
+    ~Neuron()
+    {
+
+    }
+};
+
+class Input : Neuron
+{
+public:
+    Input()
+    {
+
+    }
+    ~Input()
+    {
+
+    }
+    
+    static void PrepareInputs(NN_Audio_Parameters NNAP);
+
+private:
+    static void HandleZeroCrossings(int* value, int size);
+    static void HandlePitch(float* value, int size);
+    static void HandleMagnitude(float* value, int size);
+    static void HandlePhase(float* value, int size);
+};
+
+class Hidden : Neuron
+{
+public:
+    Hidden()
+    {
+
+    }
+    ~Hidden()
+    {
+
+    }
+
+private:
 
 };
 
-Neuron::Neuron(Neuron_Type Neuron)
+class Output : Neuron
 {
-    switch (Neuron)
+public:
+    Output()
     {
-    case E_INPUT:
-        break;
-    case E_HIDDEN:
-        break;
-    case E_OUTPUT:
-        break;
-    default:
-        break;
-    }
-}
 
-Neuron::~Neuron()
-{
-}
+    }
+    ~Output()
+    {
+
+    }
+
+private:
+
+};
+
+
+
 
 #endif
