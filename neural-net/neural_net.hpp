@@ -42,7 +42,7 @@ const std::vector<std::string> HEADERS =
 
 typedef struct NN_Audio_Parameters
 {
-    WAV wav;
+    WAV& wav;
     int ZeroCrossingCount; 
     boost::float32_t Pitch;
     boost::float32_t Magnitude;
@@ -77,10 +77,10 @@ class Prime_Data
         { 
             AS = &audio;
         }
-        std::vector<NN_Audio_Parameters> PrepareAudioData(std::vector<WAV> wav, int NoOfFiles);
-        void Write_Data(std::string filename, std::vector<NN_Audio_Parameters>& AP, int NoOfEntries); 
-        void FreeAudioData(NN_Audio_Parameters** A_Audio_Parameters, int NoOfFiles);
+        NN_Audio_Parameters ** PrepareAudioData(std::vector<WAV>& wav, int NoOfFiles);
+        void Write_Data(std::string filename, NN_Audio_Parameters** AP, int NoOfEntries);
 
+    friend class Audio;
     friend class Neural_Net_Modes;
 };
 

@@ -39,7 +39,7 @@
 *  @param  Path the path of the audio file to be loaded.
 *  @return whether the file was read or not. 
 */
-WAV AudioSuite::Load(std::string Path, bool recursive)
+WAV AudioSuite::Load(std::string Path = "", bool recursive)
 {
     std::ifstream input(Path, std::ios::binary);
 
@@ -49,40 +49,41 @@ WAV AudioSuite::Load(std::string Path, bool recursive)
 
     input.close();
 
-    WAV result; // Use a local variable instead of dynamic allocation
-    result.filename = Path;
+    WAV* result = new WAV;
+    result->filename = Path;
 
-    if (bytes.size() < sizeof(WAV_File))
+    if (bytes.size() < sizeof(WAV))
     {
-        return result; // Return the local variable by value
+        return *result;
     }
-
-    WAV_File* wavFile = reinterpret_cast<WAV_File*>(bytes.data());
-    result.header = *wavFile;
-    result.size = bytes.size() - C_WAV_File_SIZE;
+    WAV* wav = reinterpret_cast<WAV*>(bytes.data());
+    result = std::move(wav);
+    result->size = bytes.size() - C_WAV_File_SIZE;
 
     // Calculate the size of the data
     std::size_t dataSize = bytes.size() - C_WAV_File_SIZE;
 
     // Copy the data portion into the data vector
-    result.header.Data.resize(dataSize);
-    std::memcpy(result.header.Data.data(), bytes.data() + C_WAV_File_SIZE, dataSize);
+    result->header.Data.resize(dataSize);
 
-    StereoToMono(result);
+    std::memcpy(result->header.Data.data(), bytes.data() + C_WAV_File_SIZE, dataSize);
 
-    // Assuming result.header.Data and result.fl_data have the same size
-    result.fl_data.resize(result.header.Data.size());
+    StereoToMono(*result);
 
-    for (int i = 0; i < result.header.Data.size(); i++)
+    std::vector<float> n;
+    // Assuming result->header.Data and result->fl_data have the same size
+    result->fl_data.resize(result->header.Data.size());
+
+    for (int i = 0; i < result->header.Data.size(); i++)
     {
-        result.fl_data[i] = static_cast<float>(result.header.Data[i]);
+        result->fl_data[i] = static_cast<float>(result->header.Data[i]);
     }
 
-    GetFrames(result);
+    GetFrames(*result);
 
-    Windowing(result);
+    Windowing(*result);
 
-    return result;
+    return *result;
 }
 
 /*********************************************************************************************************************/
@@ -234,27 +235,16 @@ void AudioSuite::Windowing(WAV& wav)
     wav.frames.clear();
 }
 
-void AudioSuite::FourierTransform(WAV& wav, LoadingBar * LB) {
-
-    bool Loading = false;
-    if (LB != nullptr)
-    {
-        Loading = true;
-    }
-
-    LoadingBar L("Fourier Transform", wav.windows.size());
+void AudioSuite::FourierTransform(WAV& wav) {
     std::vector<std::vector<FourierOut>> final;
-
     for (int i = 0; i < wav.windows.size(); i++) 
     {
-        std::vector<std::complex<boost::float32_t>> result(wav.windows[i].begin(), wav.windows[i].end());
-        FFT(result);
+        std::vector<std::complex<boost::float32_t>> result = FastFourierTransform(wav.windows[i]);
 
         std::vector<FourierOut> a;
         for (std::size_t j = 0; j < result.size(); ++j) 
         {
-            FourierOut Out = 
-            {
+            FourierOut Out = {
                 result[j],
                 std::abs(result[j]),
                 std::arg(result[j])
@@ -262,9 +252,17 @@ void AudioSuite::FourierTransform(WAV& wav, LoadingBar * LB) {
             a.push_back(Out);
         }
         final.push_back(a);
-        L.LogProgress1();
     }
     wav.fourier = final;
+}
+
+std::vector<std::complex<boost::float32_t>> AudioSuite::FastFourierTransform(std::vector<boost::float32_t>& to_check) {
+
+    std::vector<std::complex<boost::float32_t>> complex_data(to_check.begin(), to_check.end());
+
+    FFT(complex_data);
+
+    return complex_data;
 }
 
 void AudioSuite::FFT(std::vector<std::complex<boost::float32_t>>& data) 

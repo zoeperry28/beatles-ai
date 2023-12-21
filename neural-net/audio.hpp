@@ -7,8 +7,6 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/cstdfloat.hpp>
 
-#include "helper.hpp"
-
 
 #define C_BITFIELD_MUL (8)
 #define C_NO_OF_EMPTY_FIELDS (5)
@@ -93,7 +91,6 @@ typedef struct WAV_File {
     uint32_t Subchunk2Size  :C_BITFIELD_MUL * C_SUBCHUNK2SIZE_SIZE;
     std::vector<char> Data;
 
-
 } WAV_File;
 
 
@@ -126,7 +123,7 @@ class AudioSuite
         std::string GetActualNote(float pitch, float reference_pitch);
         bool StereoToMono(WAV& wav );
 
-        void FourierTransform(WAV& wav, LoadingBar * LB = nullptr);
+        void FourierTransform(WAV& wav);
         void Spectrogram(WAV * wav);        
         std::vector<boost::float32_t> FFT_GetMagnitude(WAV& wav);
         std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
@@ -134,6 +131,7 @@ class AudioSuite
         void Windowing(WAV& wav);
         void GetFrames(WAV& wav);
         void FFT(std::vector<std::complex<boost::float32_t>>& data);
+        std::vector<std::complex<boost::float32_t>> FastFourierTransform(std::vector<boost::float32_t>& to_check);
 
 
 };
