@@ -31,6 +31,8 @@
 #define C_SUBCHUNK2ID_SIZE   (4U)
 #define C_SUBCHUNK2SIZE_SIZE (4U)
 
+const float C_PREMPHASIS_COEFF = 0.97;
+
 const int C_WAV_File_SIZE =
     C_CHUNKID_SIZE +
     C_CHUNKSIZE_SIZE +
@@ -127,13 +129,29 @@ class AudioSuite
         void Spectrogram(WAV * wav);        
         std::vector<boost::float32_t> FFT_GetMagnitude(WAV& wav);
         std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
-    private:
+        void MFCC(WAV& wav);
+private:
         void Windowing(WAV& wav);
         void GetFrames(WAV& wav);
         void FFT(std::vector<std::complex<boost::float32_t>>& data);
         std::vector<std::complex<boost::float32_t>> FastFourierTransform(std::vector<boost::float32_t>& to_check);
 
 
+        void FFT(std::vector<std::vector<boost::float32_t>>& data);
+        void PreEmphasis(std::vector<boost::float32_t>& data);
+        std::vector<std::vector<boost::float32_t>> MelFilterBank(int FilterNo, int FFTSize, int SampleRate);
+
+        boost::float32_t MelScale(boost::float32_t f);
+        boost::float32_t MelToFreq(boost::float32_t mel);
+        std::vector<boost::float32_t> MelToFreq(const std::vector<float>& mel);
+        std::vector<boost::float32_t> PointFloor(int FFTSize, std::vector<boost::float32_t> freq_points, int SampleRate);
+        std::vector<std::vector<boost::float32_t>> LogCompress(std::vector<std::vector<boost::float32_t>>& f);
+
+        std::vector<std::vector<float>> DiscreteCosTransform(std::vector<std::vector<boost::float32_t>>& C, int M);
+        boost::float32_t DiscreteCosTransform_Norm(int m, int M);
+
+        std::vector<std::vector<boost::float32_t>> AudioSuite::TriangularFilterBank(int numFilters, int fftSize, int sampleRate);
+        std::vector<boost::float32_t> AudioSuite::ApplyTriangularFilterBank(const std::vector<boost::float32_t>& spectrum, const std::vector<std::vector<boost::float32_t>>& filterBank);
 };
 
 #endif //  __AUDIO_H__

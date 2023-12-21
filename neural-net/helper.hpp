@@ -1,4 +1,4 @@
-#include <string>
+﻿#include <string>
 #include <map>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/any.hpp>
@@ -7,9 +7,14 @@
 #define __HELPER_H__
 
 bool IsWavFile(std::string path); 
+bool IsCSVFile(std::string path);
 bool IsFolder(std::string path) ;
 float StdDev(const std::vector<float>& n);
-
+std::vector<std::string> SplitByDelimiter(std::string to_check, std::string delim);
+std::vector<float> LinSpace(float start, float stop, int num = 50);
+std::vector<float> Zeros(int ind);
+std::vector<float> Arrange(int start, int stop, int step);
+std::vector<float> AddAtIndex(std::vector<float> data, std::vector<float> to_add, int start, int end);
 class LoadingBar
 {
 public:

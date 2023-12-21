@@ -7,7 +7,7 @@ private:
     int input = 0;
     int weight = 0;
     int bias = 0;
-    int threshold;
+    int threshold = 0;
 public:
     Neuron(/* args */);
     ~Neuron();
@@ -18,8 +18,17 @@ Neuron::Neuron(/* args */)
 {
 }
 
-Neuron::~Neuron()
-{
-}
+    }
+    ~Output()
+    {
+
+    }
+
+private:
+
+};
+
+
+
 
 #endif

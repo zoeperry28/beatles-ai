@@ -34,6 +34,7 @@ typedef struct NEURAL_NET_Params
 const std::vector<std::string> HEADERS =
 {
     "FILE",
+    "LABEL",
     "ZERO_CROSSINGS",
     "PITCH",
     "STD_MAGNITUDE",

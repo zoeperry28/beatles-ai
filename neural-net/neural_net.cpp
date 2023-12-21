@@ -63,6 +63,8 @@ NN_Audio_Parameters** Prime_Data::PrepareAudioData(std::vector<WAV>& wav, int No
     A_Audio_Parameters = (NN_Audio_Parameters**)malloc(NoOfFiles);
     for (int i = 0; i < wav.size(); i++)
     {
+
+        AS->MFCC(wav[i]);
         AS->FourierTransform(wav[i]);
 
         NN_Audio_Parameters AP = {
@@ -147,7 +149,6 @@ bool Neural_Net_Modes::Data_Gathering(std::vector<std::string>& files)
 {
     AudioSuite AS;
     Prime_Data PD;
-    //std::vector<std::vector<HannWindow>> HannWindows;
 
     std::vector<WAV>wavs = Get_Wavs(files);
     
@@ -169,7 +170,39 @@ bool Neural_Net_Modes::Data_Gathering(std::vector<std::string>& files)
 //	  2. Execution later on
 bool Neural_Net_Modes::Training(std::vector<std::string>& files)
 {
+    Neural_Net NN;
+    Prime_Data PD;
 
+    std::vector<std::vector<NN_Audio_Parameters>> AP;
+    for (int i = 0; i < files.size(); i++)
+    {
+        if (IsCSVFile(files[i]))
+        {
+            AP.push_back(PD.Read_Data(files[i]));
+        }
+    }
+    // flatten the data
+    std::vector<NN_Audio_Parameters> final_data; 
+    if (AP.size() > 1)
+    {
+        for (int i = 0; i < AP.size(); i++)
+        {
+            for (int j = 0; j < AP[i].size(); j++)
+            {
+                final_data.push_back(AP[i][j]);
+            }
+        }
+    }
+    else
+    {
+        final_data = AP[0];
+    }
+    LoadingBar LB("Input Prepearation", final_data.size());
+    for (int i = 0; i < final_data.size(); i++)
+    {
+        Input::PrepareInputs(final_data[i]);
+        LB.LogProgress1();
+    }
     return false;
 }
 
@@ -185,7 +218,16 @@ bool Neural_Net_Modes::Training(std::vector<std::string>& files)
 // 4. A log of the execution should also be stored off, detailing parameters used.
 bool Neural_Net_Modes::Execution(std::vector<std::string>& files)
 {
-    //Audio AudioReader("C:\\projects\\beatles-ai\\Data\\john\\1_imagine-vocal.wav");
-    Neural_Net NN;
+    Prime_Data PD;
+
+    std::vector<WAV>wavs = Get_Wavs(files);
+
+    std::vector<NN_Audio_Parameters> Data = PD.PrepareAudioData(wavs, wavs.size());
+
+    for (int i = 0; i < Data.size(); i++)
+    {
+        Input::PrepareInputs(Data[i]);
+    }
+
     return false;
 }
