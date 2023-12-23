@@ -102,10 +102,10 @@ std::vector<NN_Audio_Parameters> Prime_Data::PrepareAudioData(std::vector<WAV> w
         NN_Audio_Parameters AP;
         AP.Label             = Get_Data_Label(wav[i].filename);
         AP.wav = wav[i],
-            AP.ZeroCrossingCount = AS->CountZeroCrossings(wav[i]),
-            AP.Pitch = AS->CalculatePitch(wav[i]),
-            AP.Magnitude = StdDev(AS->FFT_GetMagnitude(wav[i])),
-            AP.Phase = StdDev(AS->FFT_GetPhase(wav[i])),
+        AP.Pitch = AS->CalculatePitch(wav[i]),
+        AP.ZeroCrossingCount = AS->CountZeroCrossings(wav[i]),
+        AP.Magnitude = StdDev(AS->FFT_GetMagnitude(wav[i])),
+        AP.Phase = StdDev(AS->FFT_GetPhase(wav[i])),
 
 
         A_Audio_Parameters[i] = AP;
@@ -153,14 +153,21 @@ std::vector<WAV> Neural_Net_Modes::Get_Wavs(std::vector<std::string>& files)
 
     for (const auto& folder : files)
     {
-        for (const auto& entry : std::filesystem::recursive_directory_iterator(folder))
+        if (std::filesystem::is_directory(folder))
         {
-            std::string to_add = entry.path().string();
-            if (to_add != "" && IsWavFile(to_add)) 
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(folder))
             {
-                WAV w = AS.Load(to_add, true);
-                wavs.push_back(w);
+                std::string to_add = entry.path().string();
+                if (to_add != "" && IsWavFile(to_add))
+                {
+                    WAV w = AS.Load(to_add, true);
+                    wavs.push_back(w);
+                }
             }
+        }
+        else
+        {
+            std::cerr << "Folder does not exist!\n";
         }
     }
     return wavs;

@@ -342,23 +342,21 @@ std::vector<boost::float32_t> AudioSuite::PointFloor(int FFTSize, std::vector<bo
 
 void MFB_CalcForPoints(std::vector<float>& all_points, const std::vector<float>& bin_points, int m)
 {
-    auto bin_begin = bin_points.begin();
-    auto bin_end = bin_points.end();
-    std::transform(all_points.begin(), all_points.end(), all_points.begin(),
-        [bin_begin, m](float point) {
-            return point - *std::prev(bin_begin, m) / (*bin_begin - *std::prev(bin_begin, m));
-        });
+    for (int i = 0; i < all_points.size()-1; i++)
+    {
+        all_points[i] = all_points[i] - bin_points[m - 1] / (bin_points[m] - bin_points[m - 1]);
+    }
 }
-
 void MFB_CalcForPoints2(std::vector<float>& all_points, const std::vector<float>& bin_points, int m)
 {
-    auto bin_begin = bin_points.begin();
-    auto bin_end = bin_points.end();
-    std::transform(all_points.begin(), all_points.end(), all_points.begin(),
-        [bin_begin, m](float point) {
-            return (point - *bin_begin) / (*std::next(bin_begin, m + 1) - *bin_begin);
-        });
+    for (int i = 0; i < all_points.size()-1; i++)
+    {
+        all_points[i] = (all_points[i] - bin_points[m]) / (bin_points[m + 1] - bin_points[m]);
+        
+    }
 }
+
+
 
 std::vector<std::vector<boost::float32_t>> AudioSuite::MelFilterBank(int numFilters, int fftSize, int sampleRate) {
     const int lowFreq = 0;
@@ -368,21 +366,22 @@ std::vector<std::vector<boost::float32_t>> AudioSuite::MelFilterBank(int numFilt
     const boost::float32_t melHigh = MelScale(highFreq);
 
     const std::vector<float> melPoints = LinSpace(melLow, melHigh, numFilters + 2);
-    const std::vector<boost::float32_t> freqPoints = MelToFreq(melPoints);
-    const std::vector<boost::float32_t> binPoints = PointFloor(fftSize, freqPoints, sampleRate);
+    const std::vector<float> freqPoints = MelToFreq(melPoints);
+    const std::vector<float> binPoints = PointFloor(fftSize, freqPoints, sampleRate);
 
     std::vector<std::vector<float>> filters;
 
-    for (int m = 1; m <= numFilters; m++) {
+    for (int m = 1; m < numFilters-1; m++) {
         std::vector<float> filterM = Zeros(fftSize / 2 + 1);
 
-        AddAtIndex(filterM, Arrange(binPoints[m - 1], binPoints[m] + 1, 1), m - 1, m);
+        AddAtIndex(filterM, Arange(binPoints[m - 1], binPoints[m] + 1, 1), m - 1, m);
         MFB_CalcForPoints(filterM, binPoints, m);
 
-        AddAtIndex(filterM, Arrange(binPoints[m - 1], binPoints[m] + 1, 1), m, m + 1);
+        AddAtIndex(filterM, Arange(binPoints[m - 1], binPoints[m] + 1, 1), m, m + 1);
         MFB_CalcForPoints2(filterM, binPoints, m);
 
         filters.push_back(filterM);
+        std::cout << "FBM\n"; 
     }
 
     return filters;
@@ -461,7 +460,7 @@ std::vector<boost::float32_t> AudioSuite::ApplyTriangularFilterBank(const std::v
     return to_return;
 }
 
-void AudioSuite::MFCC(WAV& wav)
+std::vector<std::vector<float>> AudioSuite::MFCC(WAV& wav)
 {
     // Preprocess the audio data
     PreEmphasis(wav.fl_data);
@@ -495,5 +494,6 @@ void AudioSuite::MFCC(WAV& wav)
 
     // The result 'mfccResult' contains the MFCC coefficients for each frame
     // Depending on your application, you may want to use or store these coefficients
-    std::cout << "done!\n";
+    return mfccResult;
 }
+

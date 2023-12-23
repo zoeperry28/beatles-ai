@@ -68,13 +68,13 @@ std::vector<float> Zeros(int ind)
     return to_return;
 }
 
-std::vector<float> Arrange(int start, int stop, int step)
-{
+std::vector<float> Arange(int start, int stop, int step) {
     std::vector<float> to_return;
-    for (int i = start; i < stop; step++)
-    {
-        to_return.push_back(i);
+
+    for (int i = start; i < stop; i += step) {
+        to_return.push_back(static_cast<float>(i));
     }
+
     return to_return;
 }
 

@@ -132,7 +132,7 @@ class AudioSuite
         void Spectrogram(WAV * wav);        
         std::vector<boost::float32_t> FFT_GetMagnitude(WAV& wav);
         std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
-        void MFCC(WAV& wav);
+        std::vector<std::vector<float>> MFCC(WAV& wav);
 private:
         void Windowing(WAV& wav);
         void GetFrames(WAV& wav);
