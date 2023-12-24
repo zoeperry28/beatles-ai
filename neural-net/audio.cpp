@@ -163,6 +163,45 @@ int AudioSuite::CountZeroCrossings(WAV& wav)
     return crossings;
 }
 
+int Frequency(std::vector<float> val, float x)
+{
+    int count = 0;
+    for (int i = 0; i < val.size(); i++)
+    {
+        if (val[i] == x)
+        {
+            count++;
+        }
+    }
+    return count;
+}
+
+float Amplitude(std::vector<float> val)
+{
+    float v = std::numeric_limits<float>::min();
+    for (int i = 0; i < val.size(); i++)
+    {
+        if (val[i] > v)
+        {
+            v = val[i];
+        }
+    }
+    return v;
+}
+
+
+std::vector<float> AudioSuite::RootMeanSquare(const std::vector<float>& data)
+{
+    std::vector<float> to_return(data.size(), 0.0f);
+
+    for (int n = 0; n < data.size(); n++)
+    {
+        to_return[n] = std::sqrt(data[n] * data[n]); 
+    }
+
+    return to_return;
+}
+
 float AudioSuite::CalculatePitch(WAV &wav)
 {
     float to_return = 0.0;
@@ -487,5 +526,57 @@ std::vector<std::vector<float>> AudioSuite::MFCC(WAV& wav)
     // The result 'mfccResult' contains the MFCC coefficients for each frame
     // Depending on your application, you may want to use or store these coefficients
     return mfccResult;
+}
+
+std::vector<float> SpectralCentroid(const std::vector<float>& data)
+{
+    std::vector<float> to_return(data.size());
+
+    for (int n = 0; n < data.size(); n++)
+    {
+        const float MAG = Amplitude(data);
+        const float FREQ = Frequency(data, n);
+
+        if (MAG != 0) 
+        {
+            to_return[n] = FREQ * MAG;
+        }
+        else 
+        {
+            to_return[n] = 0.0f;
+        }
+    }
+
+    return to_return;
+}
+
+float MeanFrequency(const std::vector<float>& data)
+{
+    float to_return = 0.0f;
+    float totalMagnitude = 0.0f;
+
+    for (int n = 0; n < data.size(); ++n)
+    {
+        const float MAG = Amplitude(data);
+        const float currentFrequency = Frequency(data, n);
+
+        totalMagnitude += MAG;
+
+        to_return += currentFrequency * MAG;
+    }
+    
+    return to_return / totalMagnitude;
+}
+
+std::vector<float> SpectralBandwith(const std::vector<float>& data)
+{
+    std::vector<float> to_return(data.size());
+    for (int n = 0; n < data.size(); n++)
+    {
+        float x = std::pow((Frequency(data, data[n]) - MeanFrequency(data)), 2)* Amplitude(data);
+        float y = Amplitude(data);
+        to_return[n] = x / y;
+    }
+    return to_return;
 }
 

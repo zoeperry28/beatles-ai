@@ -123,6 +123,7 @@ class AudioSuite
     public:
         WAV Load(std::string Path, bool recursive = true);
         int CountZeroCrossings(WAV &wav);
+        std::vector<float> RootMeanSquare(const std::vector<float>& data);
         float CalculatePitch(WAV &wav);
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);
