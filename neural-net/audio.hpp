@@ -170,6 +170,7 @@ class AudioSuite
                 std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
                 void FourierTransform(WAV& wav, LoadingBar* LB = nullptr);
                 static void FFT(std::vector<std::vector<float>>& data);
+                
         } Fourier;
 
         struct Pitch
@@ -177,9 +178,10 @@ class AudioSuite
         private:
             float MeanSquaredDifference(std::vector<float> data, int n);
             float YIN_PitchDetection(std::vector<float> & data);
+            float PitchFundementalFrequency();
         public:
             float Frequency();
-            float PitchContour(); 
+            std::vector<float> PitchContour(std::vector<std::vector<float>>& data);
         };
 
     private:

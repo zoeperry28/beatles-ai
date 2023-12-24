@@ -344,7 +344,6 @@ void AudioSuite::Fourier::FFT(std::vector<std::vector<float>>& data)
     }
 }
 
-
 boost::float32_t AudioSuite::Spectrogram::MelScale(boost::float32_t f)
 {
     return 1125 * std::log(1 + f / 700);
@@ -584,22 +583,48 @@ std::vector<float> AudioSuite::Spectrogram::SpectralContrast(const std::vector<f
     return to_return;
 }
 
+float AudioSuite::Pitch::MeanSquaredDifference(std::vector<float> data, int tau)
+{
+    int N = data.size();
+    float d_tau = 0;
+    for (int i = 0; i < (N - tau + 1); i++)
+    {
+        d_tau += std::abs(data[i] - data[i + tau]);
+    }
+
+    return d_tau;
+}
+
 float AudioSuite::Pitch::YIN_PitchDetection(std::vector<float>& data)
 {
+    int N = data.size();
+    int min_tau = 0;
+    float min_d_tau = std::numeric_limits<float>::max();
+    for (int i = 0; i < N; i++)
+    {
+        int d_tau = MeanSquaredDifference(data, i);
+        if (d_tau < min_d_tau)
+        {
+            min_d_tau = d_tau;
+            min_tau = i;
+        }
+    }
+    return min_tau;
+}
+
+float AudioSuite::Pitch::PitchFundementalFrequency()
+{
+    return 0.0f;
+}
+
+std::vector<float>  AudioSuite::Pitch::PitchContour(std::vector<std::vector<float>>& data)
+{
+    std::vector<float> pitches(data.size());
+    AudioSuite AS;
+    AS.Fourier.FFT(data);
     for (int i = 0; i < data.size(); i++)
     {
-        float r = 0;
-        float cur = std::pow((data[i] - data[i - r]), 2);
+        pitches[i] = YIN_PitchDetection(data[i]);
     }
-    return 0.0f;
-}
-
-float AudioSuite::Pitch::Frequency()
-{
-    return 0.0f;
-}
-
-float AudioSuite::Pitch::PitchContour()
-{
-    return 0.0f;
+    return pitches;
 }

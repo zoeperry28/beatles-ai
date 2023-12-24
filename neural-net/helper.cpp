@@ -70,12 +70,12 @@ std::vector<float> Zeros(int ind)
 
 std::vector<float> Arange(int start, int stop, int step) {
     std::vector<float> to_return((stop - start)/step);
-    //
-    //for (int i = start; i < stop; i += step) {
-    //    to_return.push_back(static_cast<float>(i));
-    //    std::cout << "ARANGE = " << i << "/" << stop << "\n";
-    //}
-    //
+    
+    for (int i = start; i < stop; i += step) 
+    {
+        to_return.push_back(static_cast<float>(i));
+    }
+    
     return to_return;
 }
 
