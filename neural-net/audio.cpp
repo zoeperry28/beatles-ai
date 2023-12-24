@@ -148,7 +148,7 @@ bool AudioSuite::StereoToMono(WAV& wav)
     return res;
 }
 
-int AudioSuite::CountZeroCrossings(WAV& wav)
+int AudioSuite::TimeDomain::CountZeroCrossings(WAV& wav)
 {
     int crossings = 0;
 
@@ -190,7 +190,7 @@ float Amplitude(std::vector<float> val)
 }
 
 
-std::vector<float> AudioSuite::RootMeanSquare(const std::vector<float>& data)
+std::vector<float> AudioSuite::TimeDomain::RootMeanSquare(const std::vector<float>& data)
 {
     std::vector<float> to_return(data.size(), 0.0f);
 
@@ -205,7 +205,8 @@ std::vector<float> AudioSuite::RootMeanSquare(const std::vector<float>& data)
 float AudioSuite::CalculatePitch(WAV &wav)
 {
     float to_return = 0.0;
-    int zero_crossings = CountZeroCrossings(wav);
+    int zero_crossings = TimeDomain.CountZeroCrossings(wav);
+    
 
     if (zero_crossings == 0) 
     {
@@ -227,10 +228,6 @@ std::string AudioSuite::GetActualNote(float pitch, float reference_pitch)
     return (Notes[note_number  % C_UNIQUE_PITCHES] + std::to_string(note_number / C_UNIQUE_PITCHES + 1));
 } 
 
-void AudioSuite::Spectrogram(WAV * wav)
-{
-
-}
 
 void AudioSuite::GetFrames(WAV& wav) {
     std::vector<std::vector<boost::float32_t> > to_return;
@@ -348,17 +345,17 @@ void AudioSuite::Fourier::FFT(std::vector<std::vector<float>>& data)
 }
 
 
-boost::float32_t AudioSuite::MelScale(boost::float32_t f)
+boost::float32_t AudioSuite::Spectrogram::MelScale(boost::float32_t f)
 {
     return 1125 * std::log(1 + f / 700);
 }
 
-boost::float32_t AudioSuite::MelToFreq(boost::float32_t mel)
+boost::float32_t AudioSuite::Spectrogram::MelToFreq(boost::float32_t mel)
 {
     return 700 * (std::exp(mel / 1125) - 1);
 }
 
-std::vector<boost::float32_t> AudioSuite::MelToFreq(const std::vector<float>& mel)
+std::vector<boost::float32_t> AudioSuite::Spectrogram::MelToFreq(const std::vector<float>& mel)
 {
     std::vector<boost::float32_t> to_return(mel.size());
     std::transform(mel.begin(), mel.end(), to_return.begin(), [](float mel_value) {
@@ -367,7 +364,7 @@ std::vector<boost::float32_t> AudioSuite::MelToFreq(const std::vector<float>& me
     return to_return;
 }
 
-std::vector<boost::float32_t> AudioSuite::PointFloor(int FFTSize, std::vector<boost::float32_t> freq_points, int SampleRate)
+std::vector<boost::float32_t> AudioSuite::Spectrogram::PointFloor(int FFTSize, std::vector<boost::float32_t> freq_points, int SampleRate)
 {
     std::vector<boost::float32_t> to_return(freq_points.size());
     for (int i = 0; i < freq_points.size(); i++)
@@ -390,7 +387,7 @@ void MFB_CalcForPoints(std::vector<float>& all_points, const std::vector<float>&
     }
 }
 
-std::vector<std::vector<boost::float32_t>> AudioSuite::MelFilterBank(int numFilters, int fftSize, int sampleRate) {
+std::vector<std::vector<boost::float32_t>> AudioSuite::Spectrogram::MelFilterBank(int numFilters, int fftSize, int sampleRate) {
     const int lowFreq = 0;
     const int highFreq = sampleRate / 2;
 
@@ -418,7 +415,7 @@ std::vector<std::vector<boost::float32_t>> AudioSuite::MelFilterBank(int numFilt
     return filters;
 }
 
-std::vector<std::vector<boost::float32_t>> AudioSuite::LogCompress(std::vector<std::vector<boost::float32_t>>& f)
+std::vector<std::vector<boost::float32_t>> AudioSuite::Spectrogram::LogCompress(std::vector<std::vector<boost::float32_t>>& f)
 {
     std::vector<std::vector<boost::float32_t>> G;
     for (std::vector<boost::float32_t>& row : f) 
@@ -434,7 +431,7 @@ std::vector<std::vector<boost::float32_t>> AudioSuite::LogCompress(std::vector<s
     return G;
 }
 
-void AudioSuite::PreEmphasis(std::vector<boost::float32_t> & data)
+void AudioSuite::Spectrogram::PreEmphasis(std::vector<boost::float32_t> & data)
 {
     for (int i = 1; i < data.size(); i++)
     {
@@ -442,7 +439,7 @@ void AudioSuite::PreEmphasis(std::vector<boost::float32_t> & data)
     }
 }
 
-boost::float32_t AudioSuite::DiscreteCosTransform_Norm(int m, int M)
+boost::float32_t AudioSuite::Spectrogram::DiscreteCosTransform_Norm(int m, int M)
 {
     boost::float32_t to_return = 0;
     if (m == 0)
@@ -456,7 +453,7 @@ boost::float32_t AudioSuite::DiscreteCosTransform_Norm(int m, int M)
     return to_return;
 }
 
-std::vector<std::vector<float>> AudioSuite::DiscreteCosTransform(std::vector<std::vector<boost::float32_t>>& C, int M)
+std::vector<std::vector<float>> AudioSuite::Spectrogram::DiscreteCosTransform(std::vector<std::vector<boost::float32_t>>& C, int M)
 {
     std::vector<std::vector<float>> X(M);
     for (int m = 0; m < M; m++)
@@ -471,34 +468,35 @@ std::vector<std::vector<float>> AudioSuite::DiscreteCosTransform(std::vector<std
     return X;
 } 
 
-std::vector<std::vector<boost::float32_t>> AudioSuite::TriangularFilter()
+std::vector<std::vector<boost::float32_t>> AudioSuite::Spectrogram::TriangularFilter()
 {
     std::vector<std::vector<boost::float32_t>> to_return;
 
     return to_return;
 }
 
-std::vector<std::vector<boost::float32_t>> AudioSuite::TriangularFilterBank(int numFilters, int fftSize, int sampleRate)
+std::vector<std::vector<boost::float32_t>> AudioSuite::Spectrogram::TriangularFilterBank(int numFilters, int fftSize, int sampleRate)
 {
     std::vector<std::vector<boost::float32_t>> to_return;
 
     return to_return;
 }
 
-std::vector<boost::float32_t> AudioSuite::ApplyTriangularFilterBank(const std::vector<boost::float32_t>& spectrum, const std::vector<std::vector<boost::float32_t>>& filterBank)
+std::vector<boost::float32_t> AudioSuite::Spectrogram::ApplyTriangularFilterBank(const std::vector<boost::float32_t>& spectrum, const std::vector<std::vector<boost::float32_t>>& filterBank)
 {
     std::vector<boost::float32_t> to_return;
     return to_return;
 }
 
-std::vector<std::vector<float>> AudioSuite::MFCC(WAV& wav)
+std::vector<std::vector<float>> AudioSuite::Spectrogram::MFCC(WAV& wav)
 {
+    AudioSuite AS;
     // Preprocess the audio data
     PreEmphasis(wav.fl_data);
-    GetFrames(wav);
+    AS.GetFrames(wav);
 
     // Apply windowing to each frame
-    Windowing(wav);
+    AS.Windowing(wav);
 
     // Apply FFT to windowed frames
     Fourier::FFT(wav.windows);
@@ -528,7 +526,7 @@ std::vector<std::vector<float>> AudioSuite::MFCC(WAV& wav)
     return mfccResult;
 }
 
-std::vector<float> SpectralCentroid(const std::vector<float>& data)
+std::vector<float> AudioSuite::Spectrogram::SpectralCentroid(const std::vector<float>& data)
 {
     std::vector<float> to_return(data.size());
 
@@ -550,7 +548,7 @@ std::vector<float> SpectralCentroid(const std::vector<float>& data)
     return to_return;
 }
 
-float MeanFrequency(const std::vector<float>& data)
+float AudioSuite::Spectrogram::MeanFrequency(const std::vector<float>& data)
 {
     float to_return = 0.0f;
     float totalMagnitude = 0.0f;
@@ -568,7 +566,7 @@ float MeanFrequency(const std::vector<float>& data)
     return to_return / totalMagnitude;
 }
 
-std::vector<float> SpectralBandwith(const std::vector<float>& data)
+std::vector<float> AudioSuite::Spectrogram::SpectralBandwith(const std::vector<float>& data)
 {
     std::vector<float> to_return(data.size());
     for (int n = 0; n < data.size(); n++)
@@ -580,3 +578,28 @@ std::vector<float> SpectralBandwith(const std::vector<float>& data)
     return to_return;
 }
 
+std::vector<float> AudioSuite::Spectrogram::SpectralContrast(const std::vector<float>& data)
+{
+    std::vector<float> to_return(data.size());
+    return to_return;
+}
+
+float AudioSuite::Pitch::YIN_PitchDetection(std::vector<float>& data)
+{
+    for (int i = 0; i < data.size(); i++)
+    {
+        float r = 0;
+        float cur = std::pow((data[i] - data[i - r]), 2);
+    }
+    return 0.0f;
+}
+
+float AudioSuite::Pitch::Frequency()
+{
+    return 0.0f;
+}
+
+float AudioSuite::Pitch::PitchContour()
+{
+    return 0.0f;
+}

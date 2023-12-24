@@ -122,45 +122,69 @@ class AudioSuite
 {
     public:
         WAV Load(std::string Path, bool recursive = true);
-        int CountZeroCrossings(WAV &wav);
-        std::vector<float> RootMeanSquare(const std::vector<float>& data);
+        bool StereoToMono(WAV& wav);
+
         float CalculatePitch(WAV &wav);
         int GetMidiNote(float pitch, float reference_pitch);
         std::string GetActualNote(float pitch, float reference_pitch);
-        bool StereoToMono(WAV& wav );
 
-        void Spectrogram(WAV * wav);        
-        std::vector<std::vector<float>> MFCC(WAV& wav);
+        struct Spectrogram
+        {
+            private:
+                boost::float32_t MelScale(boost::float32_t f);
+                boost::float32_t MelToFreq(boost::float32_t mel);
+                std::vector<boost::float32_t> MelToFreq(const std::vector<float>& mel);
+                std::vector<std::vector<boost::float32_t>> MelFilterBank(int FilterNo, int FFTSize, int SampleRate);
+                void PreEmphasis(std::vector<boost::float32_t>& data);
+                std::vector<boost::float32_t> PointFloor(int FFTSize, std::vector<boost::float32_t> freq_points, int SampleRate);
+                std::vector<std::vector<boost::float32_t>> TriangularFilterBank(int numFilters, int fftSize, int sampleRate);
 
-        friend struct Fourier;
+                std::vector<std::vector<boost::float32_t>> LogCompress(std::vector<std::vector<boost::float32_t>>& f);
+
+                std::vector<std::vector<float>> DiscreteCosTransform(std::vector<std::vector<boost::float32_t>>& C, int M);
+                boost::float32_t DiscreteCosTransform_Norm(int m, int M);
+
+                std::vector<boost::float32_t> ApplyTriangularFilterBank(const std::vector<boost::float32_t>& spectrum, const std::vector<std::vector<boost::float32_t>>& filterBank);
+                std::vector<std::vector<boost::float32_t>> TriangularFilter();
+
+
+                float MeanFrequency(const std::vector<float>& data);
+            public:
+                std::vector<std::vector<float>> MFCC(WAV& wav);
+                std::vector<float> SpectralCentroid(const std::vector<float>& data);
+                std::vector<float> SpectralBandwith(const std::vector<float>& data);
+                std::vector<float> SpectralContrast(const std::vector<float>& data);
+        } Spectrogram;
+
+        struct TimeDomain
+        {
+            public:
+                int CountZeroCrossings(WAV& wav);
+                std::vector<float> RootMeanSquare(const std::vector<float>& data);
+        }TimeDomain;
+
         struct Fourier
         {
-            std::vector<boost::float32_t> FFT_GetMagnitude(WAV& wav);
-            std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
-            void FourierTransform(WAV& wav, LoadingBar* LB = nullptr);
-            static void FFT(std::vector<std::vector<float>>& data);
+            public:
+                std::vector<boost::float32_t> FFT_GetMagnitude(WAV& wav);
+                std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
+                void FourierTransform(WAV& wav, LoadingBar* LB = nullptr);
+                static void FFT(std::vector<std::vector<float>>& data);
         } Fourier;
+
+        struct Pitch
+        {
+        private:
+            float MeanSquaredDifference(std::vector<float> data, int n);
+            float YIN_PitchDetection(std::vector<float> & data);
+        public:
+            float Frequency();
+            float PitchContour(); 
+        };
 
     private:
         void Windowing(WAV& wav);
         void GetFrames(WAV& wav);
-
-
-        void PreEmphasis(std::vector<boost::float32_t>& data);
-        std::vector<std::vector<boost::float32_t>> MelFilterBank(int FilterNo, int FFTSize, int SampleRate);
-
-        boost::float32_t MelScale(boost::float32_t f);
-        boost::float32_t MelToFreq(boost::float32_t mel);
-        std::vector<boost::float32_t> MelToFreq(const std::vector<float>& mel);
-        std::vector<boost::float32_t> PointFloor(int FFTSize, std::vector<boost::float32_t> freq_points, int SampleRate);
-        std::vector<std::vector<boost::float32_t>> LogCompress(std::vector<std::vector<boost::float32_t>>& f);
-
-        std::vector<std::vector<float>> DiscreteCosTransform(std::vector<std::vector<boost::float32_t>>& C, int M);
-        boost::float32_t DiscreteCosTransform_Norm(int m, int M);
-
-        std::vector<std::vector<boost::float32_t>> TriangularFilterBank(int numFilters, int fftSize, int sampleRate);
-        std::vector<boost::float32_t> ApplyTriangularFilterBank(const std::vector<boost::float32_t>& spectrum, const std::vector<std::vector<boost::float32_t>>& filterBank);
-        std::vector<std::vector<boost::float32_t>> TriangularFilter();
 };
 
 

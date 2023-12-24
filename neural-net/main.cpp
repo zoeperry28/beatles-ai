@@ -13,8 +13,8 @@
 #include "helper.hpp"
 int main(int argc, char* argv[])
 {
-	AudioSuite AudioReader;
-	Prime_Data PD(AudioReader);
+	AudioSuite ar;
+	Prime_Data PD(ar);
 	std::vector<std::string> file_names; 
 	std::string MODE = "";
 	std::string FILE = "";

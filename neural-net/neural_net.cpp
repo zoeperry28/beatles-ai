@@ -96,14 +96,14 @@ std::vector<NN_Audio_Parameters> Prime_Data::PrepareAudioData(std::vector<WAV> w
     for (int i = 0; i < wav.size(); i++)
     {
 
-        AS->MFCC(wav[i]);
+        AS->Spectrogram.MFCC(wav[i]);
         AS->Fourier.FourierTransform(wav[i]);
 
         NN_Audio_Parameters AP;
         AP.Label             = Get_Data_Label(wav[i].filename);
         AP.wav = wav[i];
         AP.Pitch = AS->CalculatePitch(wav[i]);
-        AP.ZeroCrossingCount = AS->CountZeroCrossings(wav[i]);
+        AP.ZeroCrossingCount = AS->TimeDomain.CountZeroCrossings(wav[i]);
         AP.Magnitude = StdDev(AS->Fourier.FFT_GetMagnitude(wav[i]));
         AP.Phase = StdDev(AS->Fourier.FFT_GetPhase(wav[i]));
 
@@ -149,7 +149,7 @@ std::vector<WAV> Neural_Net_Modes::Get_Wavs(std::vector<std::string>& files)
 {
     std::vector<WAV> wavs;
 
-    AudioSuite AS;
+    AudioSuite * A = new AudioSuite();
 
     for (const auto& folder : files)
     {
@@ -160,7 +160,7 @@ std::vector<WAV> Neural_Net_Modes::Get_Wavs(std::vector<std::string>& files)
                 std::string to_add = entry.path().string();
                 if (to_add != "" && IsWavFile(to_add))
                 {
-                    WAV w = AS.Load(to_add, true);
+                    WAV w = A->Load(to_add, true);
                     wavs.push_back(w);
                 }
             }
@@ -185,7 +185,6 @@ std::vector<WAV> Neural_Net_Modes::Get_Wavs(std::vector<std::string>& files)
 // 4. If specified by the user, the data can be saved with a specific name
 bool Neural_Net_Modes::Data_Gathering(std::vector<std::string>& files)
 {
-    AudioSuite AS;
     Prime_Data PD;
 
     std::vector<WAV>wavs = Get_Wavs(files);
