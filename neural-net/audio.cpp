@@ -242,22 +242,20 @@ void AudioSuite::FourierTransform(WAV& wav, LoadingBar * LB) {
     }
 
     LoadingBar L(("Processing: " + wav.filename), wav.windows.size());
-    std::vector<std::vector<FourierOut>> final;
+    std::vector<std::vector<FourierOut>> final(wav.windows.size());
 
     for (int i = 0; i < wav.windows.size(); i++) 
-    {
-        std::vector<std::vector<boost::float32_t>> result2(wav.windows[i].begin(), wav.windows[i].end());
-        std::vector<std::complex<boost::float32_t>> result(wav.windows[i].begin(), wav.windows[i].end());
-        FFT(result2);
+    {   
+        FFT((std::vector<std::vector<float>> &)wav.windows[i]);
 
         std::vector<FourierOut> a;
-        for (std::size_t j = 0; j < result.size(); ++j) 
+        for (std::size_t j = 0; j < wav.windows[i].size(); ++j)
         {
             FourierOut Out = 
             {
-                result[j],
-                std::abs(result[j]),
-                std::arg(result[j])
+                wav.windows[i][j],
+                std::abs(wav.windows[i][j]),
+                std::arg(wav.windows[i][j])
             };
             a.push_back(Out);
         }
@@ -267,7 +265,7 @@ void AudioSuite::FourierTransform(WAV& wav, LoadingBar * LB) {
     wav.fourier = final;
 }
 
-void AudioSuite::FFT(std::vector<std::vector<boost::float32_t>>& data)
+void AudioSuite::FFT(std::vector<std::vector<float>>& data)
 {
     const std::size_t N = data.size();
 

@@ -138,7 +138,7 @@ private:
         void GetFrames(WAV& wav);
 
 
-        void FFT(std::vector<std::vector<boost::float32_t>>& data);
+        void FFT(std::vector<std::vector<float>>& data);
         void PreEmphasis(std::vector<boost::float32_t>& data);
         std::vector<std::vector<boost::float32_t>> MelFilterBank(int FilterNo, int FFTSize, int SampleRate);
 
