@@ -86,7 +86,7 @@ WAV AudioSuite::Load(std::string Path, bool recursive)
 
 /*********************************************************************************************************************/
 
-std::vector<boost::float32_t> AudioSuite::FFT_GetMagnitude(WAV& wav)
+std::vector<boost::float32_t> AudioSuite::Fourier::FFT_GetMagnitude(WAV& wav)
 {
     std::vector<boost::float32_t> to_return;
     to_return.reserve(wav.fourier.size() * wav.fourier[0].size()); // Reserve space for better performance
@@ -102,7 +102,7 @@ std::vector<boost::float32_t> AudioSuite::FFT_GetMagnitude(WAV& wav)
     return to_return;
 }
 
-std::vector<boost::float32_t> AudioSuite::FFT_GetPhase(WAV& wav)
+std::vector<boost::float32_t> AudioSuite::Fourier::FFT_GetPhase(WAV& wav)
 {
     std::vector<boost::float32_t> to_return;
     to_return.reserve(wav.fourier.size() * wav.fourier[0].size()); // Reserve space for better performance
@@ -272,7 +272,7 @@ void AudioSuite::Windowing(WAV& wav)
     wav.frames.clear();
 }
 
-void AudioSuite::FourierTransform(WAV& wav, LoadingBar * LB) {
+void AudioSuite::Fourier::FourierTransform(WAV& wav, LoadingBar * LB) {
 
     bool Loading = false;
     if (LB != nullptr)
@@ -304,7 +304,7 @@ void AudioSuite::FourierTransform(WAV& wav, LoadingBar * LB) {
     wav.fourier = final;
 }
 
-void AudioSuite::FFT(std::vector<std::vector<float>>& data)
+void AudioSuite::Fourier::FFT(std::vector<std::vector<float>>& data)
 {
     const std::size_t N = data.size();
 
@@ -501,7 +501,7 @@ std::vector<std::vector<float>> AudioSuite::MFCC(WAV& wav)
     Windowing(wav);
 
     // Apply FFT to windowed frames
-    FFT(wav.windows);
+    Fourier::FFT(wav.windows);
 
     // Mel filter bank calculation
     std::vector<std::vector<boost::float32_t>> melFilterBank = MelFilterBank(20, 10, wav.header.SampleRate);

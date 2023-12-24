@@ -129,17 +129,23 @@ class AudioSuite
         std::string GetActualNote(float pitch, float reference_pitch);
         bool StereoToMono(WAV& wav );
 
-        void FourierTransform(WAV& wav, LoadingBar * LB = nullptr);
         void Spectrogram(WAV * wav);        
-        std::vector<boost::float32_t> FFT_GetMagnitude(WAV& wav);
-        std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
         std::vector<std::vector<float>> MFCC(WAV& wav);
-private:
+
+        friend struct Fourier;
+        struct Fourier
+        {
+            std::vector<boost::float32_t> FFT_GetMagnitude(WAV& wav);
+            std::vector<boost::float32_t> FFT_GetPhase(WAV& wav);
+            void FourierTransform(WAV& wav, LoadingBar* LB = nullptr);
+            static void FFT(std::vector<std::vector<float>>& data);
+        } Fourier;
+
+    private:
         void Windowing(WAV& wav);
         void GetFrames(WAV& wav);
 
 
-        void FFT(std::vector<std::vector<float>>& data);
         void PreEmphasis(std::vector<boost::float32_t>& data);
         std::vector<std::vector<boost::float32_t>> MelFilterBank(int FilterNo, int FFTSize, int SampleRate);
 
@@ -156,5 +162,7 @@ private:
         std::vector<boost::float32_t> ApplyTriangularFilterBank(const std::vector<boost::float32_t>& spectrum, const std::vector<std::vector<boost::float32_t>>& filterBank);
         std::vector<std::vector<boost::float32_t>> TriangularFilter();
 };
+
+
 
 #endif //  __AUDIO_H__

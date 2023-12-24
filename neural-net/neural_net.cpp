@@ -97,15 +97,15 @@ std::vector<NN_Audio_Parameters> Prime_Data::PrepareAudioData(std::vector<WAV> w
     {
 
         AS->MFCC(wav[i]);
-        AS->FourierTransform(wav[i]);
+        AS->Fourier.FourierTransform(wav[i]);
 
         NN_Audio_Parameters AP;
         AP.Label             = Get_Data_Label(wav[i].filename);
         AP.wav = wav[i];
         AP.Pitch = AS->CalculatePitch(wav[i]);
         AP.ZeroCrossingCount = AS->CountZeroCrossings(wav[i]);
-        AP.Magnitude = StdDev(AS->FFT_GetMagnitude(wav[i]));
-        AP.Phase = StdDev(AS->FFT_GetPhase(wav[i]));
+        AP.Magnitude = StdDev(AS->Fourier.FFT_GetMagnitude(wav[i]));
+        AP.Phase = StdDev(AS->Fourier.FFT_GetPhase(wav[i]));
 
 
         A_Audio_Parameters[i] = AP;
