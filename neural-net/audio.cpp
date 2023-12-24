@@ -340,23 +340,18 @@ std::vector<boost::float32_t> AudioSuite::PointFloor(int FFTSize, std::vector<bo
     return to_return;
 }
 
-void MFB_CalcForPoints(std::vector<float>& all_points, const std::vector<float>& bin_points, int m)
+
+// Function to calculate points for the Mel Filter Bank
+void MFB_CalcForPoints(std::vector<float>& all_points, const std::vector<float>& bin_points, int m, bool useBinMinusOne)
 {
-    for (int i = 0; i < all_points.size()-1; i++)
+    for (int i = 0; i < all_points.size(); i++)
     {
-        all_points[i] = all_points[i] - bin_points[m - 1] / (bin_points[m] - bin_points[m - 1]);
+        int binIndex = useBinMinusOne ? m - 1 : m;
+        if (binIndex >= 0 && binIndex < bin_points.size() && m + 1 < bin_points.size()) {
+            all_points[i] = (all_points[i] - bin_points[binIndex]) / (bin_points[m + 1] - bin_points[m]);
+        }
     }
 }
-void MFB_CalcForPoints2(std::vector<float>& all_points, const std::vector<float>& bin_points, int m)
-{
-    for (int i = 0; i < all_points.size()-1; i++)
-    {
-        all_points[i] = (all_points[i] - bin_points[m]) / (bin_points[m + 1] - bin_points[m]);
-        
-    }
-}
-
-
 
 std::vector<std::vector<boost::float32_t>> AudioSuite::MelFilterBank(int numFilters, int fftSize, int sampleRate) {
     const int lowFreq = 0;
@@ -365,23 +360,22 @@ std::vector<std::vector<boost::float32_t>> AudioSuite::MelFilterBank(int numFilt
     const boost::float32_t melLow = MelScale(lowFreq);
     const boost::float32_t melHigh = MelScale(highFreq);
 
-    const std::vector<float> melPoints = LinSpace(melLow, melHigh, numFilters + 2);
+    const std::vector<float> melPoints  = LinSpace(melLow, melHigh, numFilters + 2);
     const std::vector<float> freqPoints = MelToFreq(melPoints);
-    const std::vector<float> binPoints = PointFloor(fftSize, freqPoints, sampleRate);
+    const std::vector<float> binPoints  = PointFloor(fftSize, freqPoints, sampleRate);
 
-    std::vector<std::vector<float>> filters;
+    std::vector<std::vector<float>> filters(numFilters-2);
 
     for (int m = 1; m < numFilters-1; m++) {
-        std::vector<float> filterM = Zeros(fftSize / 2 + 1);
+        std::vector<float> filterM = Zeros(numFilters);
 
-        AddAtIndex(filterM, Arange(binPoints[m - 1], binPoints[m] + 1, 1), m - 1, m);
-        MFB_CalcForPoints(filterM, binPoints, m);
-
+        AddAtIndex(filterM, Arange(binPoints[m - 1], (binPoints[m] + 1), 1), m - 1, m);
+        MFB_CalcForPoints(filterM, binPoints, m, true);
+        
         AddAtIndex(filterM, Arange(binPoints[m - 1], binPoints[m] + 1, 1), m, m + 1);
-        MFB_CalcForPoints2(filterM, binPoints, m);
+        MFB_CalcForPoints(filterM, binPoints, m, false);
 
         filters.push_back(filterM);
-        std::cout << "FBM\n"; 
     }
 
     return filters;

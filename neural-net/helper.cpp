@@ -69,21 +69,36 @@ std::vector<float> Zeros(int ind)
 }
 
 std::vector<float> Arange(int start, int stop, int step) {
-    std::vector<float> to_return;
-
-    for (int i = start; i < stop; i += step) {
-        to_return.push_back(static_cast<float>(i));
-    }
-
+    std::vector<float> to_return((stop - start)/step);
+    //
+    //for (int i = start; i < stop; i += step) {
+    //    to_return.push_back(static_cast<float>(i));
+    //    std::cout << "ARANGE = " << i << "/" << stop << "\n";
+    //}
+    //
     return to_return;
 }
 
 std::vector<float> AddAtIndex(std::vector<float> data, std::vector<float> to_add, int start, int end)
 {
     int inc = 0;
-    for (int i = start; i < end; i++, inc++)
+    bool d = true;
+    for (int i = start; i < end; i++)
     {
-        data[i] = to_add[inc];
+        if (d)
+        {
+            data[i] = to_add[inc];
+        }
+        if ((inc + 1) != to_add.size())
+        {
+            inc++;
+        }
+        else
+        {
+            d = false;
+        }
+
+        std::cout << "AAI = " << i << "/" << end << "\n";
     }
     return data;
 }
